@@ -1,0 +1,178 @@
+/**
+ * Catalogue des panneaux de signalisation routière (norme proche Bénin / CEDEAO / Vienne).
+ * Images via Wikimedia Commons (licence libre).
+ * Source: https://commons.wikimedia.org/wiki/Road_signs_of_France
+ */
+
+function wikiSign(fileName) {
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
+}
+
+const CATALOGUE_PANNEAUX = [
+  {
+    id: "A1a",
+    nom: "Danger (générique)",
+    categorie: "danger",
+    description: "Panneau triangulaire à bord rouge annonçant un danger.",
+    image: wikiSign("France road sign A1a.svg"),
+    motsCles: ["danger", "triangulaire", "bord rouge", "avertissement"]
+  },
+  {
+    id: "A1b",
+    nom: "Virage à droite",
+    categorie: "danger",
+    description: "Annonce un virage dangereux vers la droite.",
+    image: wikiSign("France road sign A1b.svg"),
+    motsCles: ["virage", "courbe", "danger"]
+  },
+  {
+    id: "A13a",
+    nom: "Passage à niveau gardé",
+    categorie: "danger",
+    description: "Annonce un passage à niveau avec barrières.",
+    image: wikiSign("France road sign A13a.svg"),
+    motsCles: ["passage à niveau", "train", "barrière"]
+  },
+  {
+    id: "AB4",
+    nom: "STOP",
+    categorie: "priorite",
+    description: "Arrêt obligatoire à l'intersection.",
+    image: wikiSign("France road sign AB4.svg"),
+    motsCles: ["stop", "arrêt", "arrêt absolu"]
+  },
+  {
+    id: "AB3a",
+    nom: "Cédez le passage",
+    categorie: "priorite",
+    description: "Céder le passage aux véhicules prioritaires sur la voie croisée.",
+    image: wikiSign("France road sign AB3a.svg"),
+    motsCles: ["cédez", "cedez", "priorité", "passage"]
+  },
+  {
+    id: "AB5",
+    nom: "Annonce de STOP",
+    categorie: "priorite",
+    description: "Présignalisation d'un arrêt obligatoire plus loin.",
+    image: wikiSign("France road sign AB5.svg"),
+    motsCles: ["annonce", "stop", "arrêt"]
+  },
+  {
+    id: "AB6",
+    nom: "Route prioritaire",
+    categorie: "priorite",
+    description: "La route suivie est prioritaire aux intersections.",
+    image: wikiSign("France road sign AB6.svg"),
+    motsCles: ["prioritaire", "route prioritaire", "diamant"]
+  },
+  {
+    id: "B0",
+    nom: "Sens interdit",
+    categorie: "interdiction",
+    description: "Interdiction d'entrer dans la voie dans ce sens.",
+    image: wikiSign("France road sign B0.svg"),
+    motsCles: ["sens interdit", "interdiction", "circulation interdite"]
+  },
+  {
+    id: "B14_50",
+    nom: "Limitation 50 km/h",
+    categorie: "interdiction",
+    description: "Vitesse maximale autorisée: 50 km/h.",
+    image: wikiSign("France road sign B14 (50).svg"),
+    motsCles: ["50", "vitesse", "limitation", "km/h", "agglomération"]
+  },
+  {
+    id: "B31",
+    nom: "Fin d'interdiction",
+    categorie: "interdiction",
+    description: "Fin d'une interdiction précédemment signalée.",
+    image: wikiSign("France road sign B31.svg"),
+    motsCles: ["fin d'interdiction", "diagonale noire", "fin"]
+  },
+  {
+    id: "B21a1",
+    nom: "Obligation tourner à droite",
+    categorie: "obligation",
+    description: "Panneau circulaire bleu imposant de tourner à droite.",
+    image: wikiSign("France road sign B21a1.svg"),
+    motsCles: ["obligation", "circulaire bleu", "tourner", "droite"]
+  },
+  {
+    id: "B6a1",
+    nom: "Voie réservée bus",
+    categorie: "obligation",
+    description: "Voie obligatoire réservée aux autobus.",
+    image: wikiSign("France road sign B6a1.svg"),
+    motsCles: ["bus", "voie réservée", "obligation"]
+  },
+  {
+    id: "C62",
+    nom: "Passage piétons",
+    categorie: "indication",
+    description: "Emplacement d'un passage pour piétons.",
+    image: wikiSign("France road sign C62.svg"),
+    motsCles: ["piéton", "passage piéton", "traversée"]
+  },
+  {
+    id: "C18",
+    nom: "Stationnement",
+    categorie: "indication",
+    description: "Zone ou emplacement de stationnement.",
+    image: wikiSign("France road sign C18.svg"),
+    motsCles: ["stationnement", "parking"]
+  }
+];
+
+function getPanneauById(id) {
+  return CATALOGUE_PANNEAUX.find((p) => p.id === id) || null;
+}
+
+function getPanneauImage(id) {
+  const panneau = getPanneauById(id);
+  return panneau ? panneau.image : null;
+}
+
+function trouverPanneauParTexte(texte, categorie = null) {
+  const source = (texte || "").toLowerCase();
+  const candidats = categorie
+    ? CATALOGUE_PANNEAUX.filter((p) => p.categorie === categorie)
+    : CATALOGUE_PANNEAUX;
+
+  let meilleur = null;
+  let meilleurScore = 0;
+
+  candidats.forEach((panneau) => {
+    let score = 0;
+    panneau.motsCles.forEach((mot) => {
+      if (source.includes(mot.toLowerCase())) score += 1;
+    });
+    if (panneau.nom.toLowerCase().split(" ").some((part) => part.length > 3 && source.includes(part))) {
+      score += 1;
+    }
+    if (score > meilleurScore) {
+      meilleurScore = score;
+      meilleur = panneau;
+    }
+  });
+
+  return meilleurScore > 0 ? meilleur : null;
+}
+
+function resoudreImagePanneauQuestion(questionObj) {
+  if (!questionObj) return null;
+  if (questionObj.panneauId) return getPanneauImage(questionObj.panneauId);
+
+  if (questionObj.theme === "Signalisation") {
+    const panneau = trouverPanneauParTexte(`${questionObj.question} ${questionObj.explication || ""}`, "danger")
+      || trouverPanneauParTexte(`${questionObj.question} ${questionObj.explication || ""}`);
+    return panneau ? panneau.image : null;
+  }
+
+  return questionObj.image || null;
+}
+
+window.CATALOGUE_PANNEAUX = CATALOGUE_PANNEAUX;
+window.getPanneauById = getPanneauById;
+window.getPanneauImage = getPanneauImage;
+window.trouverPanneauParTexte = trouverPanneauParTexte;
+window.resoudreImagePanneauQuestion = resoudreImagePanneauQuestion;

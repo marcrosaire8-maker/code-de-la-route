@@ -68,6 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
   chargerProgression();
   initialiserSyntheseVocale();
   genererOngletsSecteurs();
+  initialiserSectionPanneaux();
   initEvenements();
   afficherMapSecteur(gameState.activeSectorIndex);
   mettreAJourTableauDeBord();
@@ -510,8 +511,7 @@ function lancerQuizNiveau(stepId) {
   }
 
   // Changer d'écran
-  document.getElementById("screen-map").classList.remove("active");
-  document.getElementById("screen-quiz").classList.add("active");
+  afficherEcran("screen-quiz");
   
   // Charger la question
   const questionObj = window.BANQUE_QUESTIONS.find(q => q.id === stepId);
@@ -734,6 +734,287 @@ function mettreAJourControlesLecture() {
   }
 }
 
+function afficherEcran(screenId) {
+  ["screen-map", "screen-panneaux", "screen-quiz"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === screenId) el.classList.add("active");
+    else el.classList.remove("active");
+  });
+}
+
+function initialiserSectionPanneaux() {
+  const startBtn = document.getElementById("btn-panneaux-start");
+  const nextBtn = document.getElementById("btn-panneaux-next");
+  if (!startBtn || !nextBtn) return;
+
+  startBtn.onclick = () => demarrerQuizPanneaux();
+  nextBtn.onclick = () => questionSuivantePanneaux();
+  resetQuizPanneauxVue();
+}
+
+const panneauQuizState = {
+  pool: [],
+  currentIndex: 0,
+  score: 0,
+  currentQuestion: null,
+  locked: false,
+  started: false
+};
+
+function melangerListe(list) {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function construirePoolQuizPanneaux() {
+  const panneaux = Array.isArray(window.CATALOGUE_PANNEAUX) ? window.CATALOGUE_PANNEAUX : [];
+  const melanges = melangerListe(panneaux);
+  const limite = Math.min(30, melanges.length);
+  return melanges.slice(0, limite).map((panneau, index) => construireQuestionPanneau(index + 1, panneau, panneaux));
+}
+
+function construireQuestionPanneau(index, panneau, tousLesPanneaux) {
+  const autres = melangerListe(tousLesPanneaux.filter((p) => p.id !== panneau.id));
+  const distracteurs = autres.slice(0, 3).map((p) => p.nom);
+  const propositions = melangerListe([panneau.nom, ...distracteurs]).slice(0, 4);
+  const lettres = ["A", "B", "C", "D"];
+  const correcteIndex = propositions.findIndex((p) => p === panneau.nom);
+
+  return {
+    id: `PANNEAU-${index}`,
+    panneauId: panneau.id,
+    theme: "Signalisation",
+    question: `Que signifie ce panneau (${panneau.id}) ?`,
+    options: propositions.map((p, i) => `${lettres[i]}) ${p}`),
+    reponsesCorrectes: [lettres[correcteIndex]],
+    explication: panneau.description,
+    image: typeof window.getPanneauImage === "function" ? window.getPanneauImage(panneau.id) : null
+  };
+}
+
+function majEnteteQuizPanneaux() {
+  const counter = document.getElementById("panneaux-quiz-counter");
+  const score = document.getElementById("panneaux-quiz-score");
+  if (!counter || !score) return;
+
+  const total = panneauQuizState.pool.length;
+  const index = Math.min(panneauQuizState.currentIndex + 1, total);
+  counter.textContent = `Question ${index} / ${total}`;
+  score.textContent = `Score : ${panneauQuizState.score}`;
+}
+
+function resetQuizPanneauxVue() {
+  panneauQuizState.pool = [];
+  panneauQuizState.currentIndex = 0;
+  panneauQuizState.score = 0;
+  panneauQuizState.currentQuestion = null;
+  panneauQuizState.locked = false;
+  panneauQuizState.started = false;
+
+  const img = document.getElementById("panneaux-quiz-image");
+  const visualSide = document.getElementById("panneaux-quiz-visual-side");
+  const question = document.getElementById("panneaux-quiz-question");
+  const options = document.getElementById("panneaux-quiz-options");
+  const feedback = document.getElementById("panneaux-quiz-feedback");
+  const startBtn = document.getElementById("btn-panneaux-start");
+  const nextBtn = document.getElementById("btn-panneaux-next");
+
+  if (img) {
+    img.removeAttribute("src");
+    img.style.display = "none";
+  }
+  if (visualSide) visualSide.classList.add("is-hidden");
+  if (question) question.textContent = "Appuie sur « Démarrer » pour lancer le quiz panneaux.";
+  if (options) options.innerHTML = "";
+  if (feedback) feedback.textContent = "";
+  if (startBtn) {
+    startBtn.style.display = "inline-flex";
+    startBtn.textContent = "Démarrer";
+  }
+  if (nextBtn) nextBtn.style.display = "none";
+
+  majEnteteQuizPanneaux();
+}
+
+function demarrerQuizPanneaux() {
+  panneauQuizState.pool = construirePoolQuizPanneaux();
+  panneauQuizState.currentIndex = 0;
+  panneauQuizState.score = 0;
+  panneauQuizState.locked = false;
+  panneauQuizState.started = true;
+
+  const startBtn = document.getElementById("btn-panneaux-start");
+  const nextBtn = document.getElementById("btn-panneaux-next");
+  const visualSide = document.getElementById("panneaux-quiz-visual-side");
+  if (startBtn) startBtn.style.display = "none";
+  if (nextBtn) nextBtn.style.display = "none";
+  if (visualSide) visualSide.classList.remove("is-hidden");
+
+  if (!panneauQuizState.pool.length) {
+    const question = document.getElementById("panneaux-quiz-question");
+    if (question) question.textContent = "Aucune question panneau disponible.";
+    return;
+  }
+
+  afficherQuestionPanneauxCourante();
+}
+
+function afficherQuestionPanneauxCourante() {
+  const q = panneauQuizState.pool[panneauQuizState.currentIndex];
+  if (!q) {
+    afficherResultatFinalQuizPanneaux();
+    return;
+  }
+
+  panneauQuizState.currentQuestion = q;
+  panneauQuizState.locked = false;
+
+  const img = document.getElementById("panneaux-quiz-image");
+  const question = document.getElementById("panneaux-quiz-question");
+  const options = document.getElementById("panneaux-quiz-options");
+  const feedback = document.getElementById("panneaux-quiz-feedback");
+  const nextBtn = document.getElementById("btn-panneaux-next");
+
+  if (img) {
+    const src = (typeof window.resoudreImagePanneauQuestion === "function")
+      ? window.resoudreImagePanneauQuestion(q)
+      : q.image;
+    const fallback = (typeof window.getPanneauFallbackImage === "function" && q.panneauId)
+      ? window.getPanneauFallbackImage(q.panneauId)
+      : null;
+    img.onload = () => {
+      img.style.display = "block";
+    };
+    img.onerror = () => {
+      if (fallback && img.src !== fallback) {
+        img.src = fallback;
+      }
+    };
+    img.style.display = "none";
+    img.src = src || fallback || "";
+  }
+  if (question) question.textContent = q.question;
+  if (feedback) feedback.textContent = "";
+  if (nextBtn) nextBtn.style.display = "none";
+
+  const lettres = ["A", "B", "C", "D"];
+  if (options) {
+    options.innerHTML = "";
+    q.options.forEach((opt, idx) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "option-card";
+      const optionText = opt.replace(/^[A-D]\)\s*/i, "");
+      card.innerHTML = `<div class="option-letter">${lettres[idx]}</div><span>${optionText}</span>`;
+      card.onclick = () => validerReponseQuizPanneaux(lettres[idx], card);
+      options.appendChild(card);
+    });
+  }
+
+  majEnteteQuizPanneaux();
+  lireQuestion(q, true);
+}
+
+function lireCorrectionPanneauxVocal(message) {
+  if (!ttsState.supported || !ttsState.userActivated) return;
+  stopLectureVocale();
+  const utterance = new SpeechSynthesisUtterance(String(message).slice(0, 320));
+  utterance.lang = "fr-FR";
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  const voice = getVoixFrancaise();
+  if (voice) utterance.voice = voice;
+  try {
+    setTimeout(() => window.speechSynthesis.speak(utterance), 60);
+  } catch (e) {
+    console.warn("Lecture correction panneaux indisponible", e);
+  }
+}
+
+function validerReponseQuizPanneaux(lettreChoisie, bouton) {
+  if (panneauQuizState.locked || !panneauQuizState.currentQuestion) return;
+  panneauQuizState.locked = true;
+
+  const q = panneauQuizState.currentQuestion;
+  const correcte = q.reponsesCorrectes[0];
+  const feedback = document.getElementById("panneaux-quiz-feedback");
+  const cards = document.querySelectorAll("#panneaux-quiz-options .option-card");
+  const lettres = ["A", "B", "C", "D"];
+
+  cards.forEach((card, idx) => {
+    if (lettres[idx] === correcte) card.classList.add("correct");
+    if (card === bouton && lettreChoisie !== correcte) card.classList.add("incorrect");
+    card.disabled = true;
+  });
+
+  const bonneOptionIndex = lettres.indexOf(correcte);
+  const bonneOptionTexte = (q.options[bonneOptionIndex] || "").replace(/^[A-D]\)\s*/i, "");
+
+  if (lettreChoisie === correcte) {
+    panneauQuizState.score += 1;
+    if (feedback) feedback.textContent = "Bonne réponse !";
+  } else if (feedback) {
+    feedback.textContent = `Incorrect. Bonne réponse : ${correcte} — ${bonneOptionTexte}`;
+    lireCorrectionPanneauxVocal(`Incorrect. La bonne réponse est ${correcte}. ${bonneOptionTexte}.`);
+  }
+
+  majEnteteQuizPanneaux();
+
+  // Avancer automatiquement après une courte pause (comme un vrai quiz)
+  setTimeout(() => {
+    questionSuivantePanneaux();
+  }, 1100);
+}
+
+function questionSuivantePanneaux() {
+  if (!panneauQuizState.pool.length) return;
+  panneauQuizState.currentIndex += 1;
+  if (panneauQuizState.currentIndex >= panneauQuizState.pool.length) {
+    afficherResultatFinalQuizPanneaux();
+    return;
+  }
+  afficherQuestionPanneauxCourante();
+}
+
+function afficherResultatFinalQuizPanneaux() {
+  const question = document.getElementById("panneaux-quiz-question");
+  const options = document.getElementById("panneaux-quiz-options");
+  const feedback = document.getElementById("panneaux-quiz-feedback");
+  const nextBtn = document.getElementById("btn-panneaux-next");
+  const startBtn = document.getElementById("btn-panneaux-start");
+  const total = panneauQuizState.pool.length;
+  const noteSur20 = total > 0 ? Math.round((panneauQuizState.score / total) * 20) : 0;
+
+  if (question) question.textContent = "Quiz terminé !";
+  if (options) options.innerHTML = "";
+  if (feedback) feedback.textContent = `Score final : ${panneauQuizState.score} / ${total} — Note : ${noteSur20}/20`;
+  if (nextBtn) nextBtn.style.display = "none";
+  if (startBtn) {
+    startBtn.style.display = "inline-flex";
+    startBtn.textContent = "Recommencer";
+  }
+  majEnteteQuizPanneaux();
+}
+
+function ouvrirSectionPanneaux() {
+  stopLectureVocale();
+  afficherEcran("screen-panneaux");
+  resetQuizPanneauxVue();
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function quitterSectionPanneaux() {
+  stopLectureVocale();
+  afficherEcran("screen-map");
+  afficherMapSecteur(gameState.activeSectorIndex);
+}
+
 function afficherIllustrationConsigne(questionObj) {
   const imageEl = document.getElementById("quiz-img");
   const vectorContainer = document.getElementById("quiz-vector-fallback");
@@ -749,23 +1030,27 @@ function afficherIllustrationConsigne(questionObj) {
     );
   };
 
-  // Afficher immédiatement une illustration (SVG) pour garantir un visuel,
-  // puis remplacer par l'image uniquement si elle charge réellement.
   svgFallback();
 
-  if (!questionObj.image) return;
+  const imageUrl = typeof window.resoudreImagePanneauQuestion === "function"
+    ? window.resoudreImagePanneauQuestion(questionObj)
+    : questionObj.image;
+
+  if (!imageUrl) return;
 
   imageEl.onload = () => {
     vectorContainer.style.display = "none";
     imageEl.style.display = "block";
+    imageEl.alt = questionObj.panneauId
+      ? `Panneau ${questionObj.panneauId}`
+      : "Panneau de signalisation";
   };
   imageEl.onerror = () => {
-    // On garde le SVG déjà affiché
+    svgFallback();
   };
 
-  // Force la revalidation du chargement (évite certains caches/états bizarres)
   imageEl.src = "";
-  imageEl.src = questionObj.image;
+  imageEl.src = imageUrl;
 }
 
 function selectionnerOption(lettre, elementOption) {
@@ -1114,8 +1399,7 @@ function fermerTousModals() {
 function quitterQuiz() {
   clearInterval(gameState.timerInterval);
   stopLectureVocale();
-  document.getElementById("screen-quiz").classList.remove("active");
-  document.getElementById("screen-map").classList.add("active");
+  afficherEcran("screen-map");
   
   // Recharger la carte
   afficherMapSecteur(gameState.activeSectorIndex);
@@ -1174,6 +1458,14 @@ function initEvenements() {
   // Clic sur "Continuer la route"
   document.getElementById("btn-start-quick").onclick = () => {
     lancerQuizNiveau(gameState.unlockedStep);
+  };
+
+  document.getElementById("btn-open-panneaux").onclick = () => {
+    ouvrirSectionPanneaux();
+  };
+
+  document.getElementById("btn-back-map-from-panneaux").onclick = () => {
+    quitterSectionPanneaux();
   };
 
   document.getElementById("btn-tts-replay").onclick = () => {

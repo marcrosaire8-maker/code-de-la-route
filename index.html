@@ -36,7 +36,7 @@
           <!-- Progression globale (étoiles / score) -->
           <div class="hud-item stars-display" title="Score Global">
             <i data-lucide="award" style="color: var(--yellow-sign);"></i>
-            <span id="global-score">0 / 300</span>
+            <span id="global-score">0 / 12000</span>
           </div>
         </div>
       </header>
@@ -51,6 +51,9 @@
             <!-- Injecté dynamiquement par app.js -->
           </div>
           <div class="map-stats">
+            <button class="btn btn-secondary" id="btn-open-panneaux" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
+              <i data-lucide="signpost" style="width: 14px; height: 14px; color: var(--neon-blue);"></i> Panneaux
+            </button>
             <button class="btn btn-secondary" id="btn-start-quick" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
               <i data-lucide="zap" style="width: 14px; height: 14px; color: var(--yellow-sign);"></i> Continuer la route
             </button>
@@ -84,7 +87,41 @@
       </main>
 
       <!-- ========================================= -->
-      <!-- ÉCRAN 2 : SALLE DE QUIZ                    -->
+      <!-- ÉCRAN 2 : PANNEAUX DE SIGNALISATION       -->
+      <!-- ========================================= -->
+      <main id="screen-panneaux" class="screen">
+        <div class="quiz-container">
+          <div class="quiz-visual-side" id="panneaux-quiz-visual-side">
+            <div class="quiz-progress-section">
+              <span class="quiz-step-title" id="panneaux-quiz-counter">Question 0 / 0</span>
+              <span class="panneaux-score-chip" id="panneaux-quiz-score">Score : 0</span>
+            </div>
+
+            <div class="visual-card">
+              <img id="panneaux-quiz-image" class="visual-image" style="display: none;" alt="Panneau de signalisation" />
+            </div>
+          </div>
+
+          <div class="quiz-control-side">
+            <span class="question-theme-badge">Quiz Panneaux</span>
+            <h2 class="question-text" id="panneaux-quiz-question">Appuie sur « Démarrer » pour lancer le quiz panneaux.</h2>
+
+            <div id="panneaux-quiz-options" class="options-list"></div>
+            <p id="panneaux-quiz-feedback" class="tts-status"></p>
+
+            <div class="quiz-actions">
+              <button class="btn btn-secondary" id="btn-back-map-from-panneaux" type="button">
+                <i data-lucide="arrow-left"></i> Retour route
+              </button>
+              <button class="btn btn-secondary" id="btn-panneaux-start" type="button">Démarrer</button>
+              <button class="btn btn-primary" id="btn-panneaux-next" type="button">Suivant</button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ========================================= -->
+      <!-- ÉCRAN 3 : SALLE DE QUIZ                    -->
       <!-- ========================================= -->
       <main id="screen-quiz" class="screen">
         <div class="quiz-container">
@@ -92,7 +129,7 @@
           <!-- Côté Gauche : Visualisation de la situation routière -->
           <div class="quiz-visual-side">
             <div class="quiz-progress-section">
-              <span class="quiz-step-title" id="quiz-step-indicator">Étape 1 sur 300</span>
+              <span class="quiz-step-title" id="quiz-step-indicator">Étape 1 sur 12000</span>
               <div class="timer-wrapper">
                 <div class="timer-bar-container">
                   <div class="timer-bar" id="timer-liquid-bar"></div>
@@ -237,7 +274,7 @@
         
         <div class="explanation-body" style="text-align: center;">
           <p style="color: var(--text-primary); font-size: 1rem; font-weight: 500; margin-bottom: 0.75rem;">
-            Vous avez surmonté avec succès les 300 étapes de l'ANaTT !
+            Vous avez surmonté avec succès les 12 000 étapes de l'ANaTT !
           </p>
           <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
             Grâce à votre maîtrise absolue du cadre légal, du marquage au sol, de la signalisation verticale, des règles de priorité et de la mécanique de bord, vous êtes officiellement admis au permis de conduire au Bénin !
@@ -255,8 +292,8 @@
     </div>
 
     <!-- Chargement des fichiers JavaScript de données puis de logique -->
-  <!-- Remplace les balises actuelles par celles-ci -->
-    <script type="module" src="/questions.js"></script>
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="./panneaux.js"></script>
+    <script type="module" src="./questions.js"></script>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>

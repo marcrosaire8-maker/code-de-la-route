@@ -69,10 +69,13 @@ function shuffleWithSeed(items, seed) {
   return arr;
 }
 
-function construireQuestionQCM({ id, theme, enonce, bonneReponse, distracteurs, explication }) {
+function construireQuestionQCM({ id, theme, enonce, bonneReponse, distracteurs, explication, panneauId = null }) {
   const propositions = shuffleWithSeed([bonneReponse, ...distracteurs.slice(0, 3)], id + 77);
   const lettres = ["A", "B", "C", "D"];
   const indexBonne = propositions.findIndex((p) => p === bonneReponse);
+  const imagePanneau = panneauId && typeof window.getPanneauImage === "function"
+    ? window.getPanneauImage(panneauId)
+    : buildQuestionImageUrl(theme, id);
 
   return {
     id,
@@ -81,7 +84,8 @@ function construireQuestionQCM({ id, theme, enonce, bonneReponse, distracteurs, 
     options: propositions.map((p, i) => `${lettres[i]}) ${p}`),
     reponsesCorrectes: [lettres[indexBonne]],
     explication,
-    image: buildQuestionImageUrl(theme, id),
+    panneauId,
+    image: imagePanneau,
     tempsImparti: TEMPS_IMPARTI_PAR_DEFAUT
   };
 }
@@ -236,6 +240,7 @@ function genererQuestionSignalisation(id) {
     return construireQuestionQCM({
       id,
       theme: "Signalisation",
+      panneauId: "A1a",
       enonce: `[Étape ${id}] Un panneau triangulaire à bord rouge appartient à la famille :`,
       bonneReponse: "Danger",
       distracteurs: ["Obligation", "Indication touristique", "Stationnement payant"],
@@ -246,6 +251,7 @@ function genererQuestionSignalisation(id) {
     return construireQuestionQCM({
       id,
       theme: "Signalisation",
+      panneauId: "B21a1",
       enonce: `[Étape ${id}] Un panneau circulaire bleu signifie généralement :`,
       bonneReponse: "Obligation",
       distracteurs: ["Fin d'interdiction", "Danger immédiat", "Information culturelle"],
@@ -256,6 +262,7 @@ function genererQuestionSignalisation(id) {
     return construireQuestionQCM({
       id,
       theme: "Signalisation",
+      panneauId: "B14_50",
       enonce: `[Étape ${id}] Un panneau rond blanc bordé rouge exprime le plus souvent :`,
       bonneReponse: "Une interdiction ou limitation",
       distracteurs: ["Une priorité automatique", "Un sens obligatoire", "Un arrêt de bus scolaire"],
@@ -266,6 +273,7 @@ function genererQuestionSignalisation(id) {
     return construireQuestionQCM({
       id,
       theme: "Signalisation",
+      panneauId: "AB4",
       enonce: `[Étape ${id}] Le panneau STOP impose :`,
       bonneReponse: "L'arrêt absolu avant de s'engager",
       distracteurs: ["Un simple ralentissement", "Le passage prioritaire", "Le stationnement temporaire"],
@@ -276,6 +284,7 @@ function genererQuestionSignalisation(id) {
     return construireQuestionQCM({
       id,
       theme: "Signalisation",
+      panneauId: "A1b",
       enonce: `[Étape ${id}] En agglomération, un panneau de danger est souvent implanté environ :`,
       bonneReponse: "50 m avant le danger",
       distracteurs: ["5 m avant le danger", "500 m avant le danger", "Immédiatement sur le danger uniquement"],
@@ -285,6 +294,7 @@ function genererQuestionSignalisation(id) {
   return construireQuestionQCM({
     id,
     theme: "Signalisation",
+    panneauId: "A1a",
     enonce: `[Étape ${id}] Hors agglomération, la distance de présignalisation de danger est souvent :`,
     bonneReponse: "150 m avant le danger",
     distracteurs: ["15 m avant le danger", "30 m avant le danger", "1 km avant le danger"],

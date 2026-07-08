@@ -997,6 +997,16 @@ body {
 }
 
 @media (max-width: 520px) {
+  /* Sur mobile, on masque la carte visuelle pour se concentrer sur la question */
+  .quiz-visual-side {
+    display: none;
+  }
+
+  .quiz-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+
   .brand-title h1 {
     font-size: 1.1rem;
   }

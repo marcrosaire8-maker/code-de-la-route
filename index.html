@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code de la Route Bénin - ANaTT Jeu Interactif</title>
+    <!-- Chargement de Lucide Icons pour des icônes ultra-propres et modernes -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div class="app-container">
+      
+      <!-- HUD / En-tête de bord principal -->
+      <header class="dashboard-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <i data-lucide="shield-alert" style="color: #070b13; width: 24px; height: 24px;"></i>
+          </div>
+          <div class="brand-title">
+            <h1>CODE BÉNIN</h1>
+            <span>PERMIS B • ANaTT</span>
+          </div>
+        </div>
+        
+        <div class="hud-panel">
+          <!-- Vies / Carburant -->
+          <div class="hud-item lives-display" id="hud-lives" title="Vies / Réservoir">
+            <i data-lucide="droplet" class="life-heart"></i>
+            <i data-lucide="droplet" class="life-heart"></i>
+            <i data-lucide="droplet" class="life-heart"></i>
+            <i data-lucide="droplet" class="life-heart"></i>
+            <i data-lucide="droplet" class="life-heart"></i>
+          </div>
+          
+          <!-- Progression globale (étoiles / score) -->
+          <div class="hud-item stars-display" title="Score Global">
+            <i data-lucide="award" style="color: var(--yellow-sign);"></i>
+            <span id="global-score">0 / 300</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ========================================= -->
+      <!-- ÉCRAN 1 : MAP DU JEU (ROADMAP)            -->
+      <!-- ========================================= -->
+      <main id="screen-map" class="screen active">
+        <!-- Barre d'outils et sélecteurs de Secteurs académiques -->
+        <div class="map-toolbar">
+          <div class="sector-navigator" id="sector-tabs">
+            <!-- Injecté dynamiquement par app.js -->
+          </div>
+          <div class="map-stats">
+            <button class="btn btn-secondary" id="btn-start-quick" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
+              <i data-lucide="zap" style="width: 14px; height: 14px; color: var(--yellow-sign);"></i> Continuer la route
+            </button>
+          </div>
+        </div>
+
+        <!-- Zone de défilement de la Route d'entraînement -->
+        <div class="road-scroller" id="road-scroller">
+          <div class="road-track" id="road-track">
+            <!-- La ligne d'asphalte centrale de la route -->
+            <div class="road-asphalt-line"></div>
+            <!-- Les boutons d'étapes (1 à 300) seront injectés ici par app.js -->
+          </div>
+        </div>
+
+        <!-- Barre d'infos odomètre en bas de la Map -->
+        <div class="stats-bar">
+          <div class="stat-box">
+            <span class="stat-val" id="stat-completed-count">0</span>
+            <span>ÉTAPES RÉUSSIES</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-current-sector">Cadre Légal</span>
+            <span>SECTEUR ACTUEL</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-success-rate">100%</span>
+            <span>TAUX DE RÉUSSITE</span>
+          </div>
+        </div>
+      </main>
+
+      <!-- ========================================= -->
+      <!-- ÉCRAN 2 : SALLE DE QUIZ                    -->
+      <!-- ========================================= -->
+      <main id="screen-quiz" class="screen">
+        <div class="quiz-container">
+          
+          <!-- Côté Gauche : Visualisation de la situation routière -->
+          <div class="quiz-visual-side">
+            <div class="quiz-progress-section">
+              <span class="quiz-step-title" id="quiz-step-indicator">Étape 1 sur 300</span>
+              <div class="timer-wrapper">
+                <div class="timer-bar-container">
+                  <div class="timer-bar" id="timer-liquid-bar"></div>
+                </div>
+                <span class="timer-text" id="timer-text">30s</span>
+              </div>
+            </div>
+            
+            <!-- Carte interactive de l'image ou de la situation en SVG -->
+            <div class="visual-card" id="visual-card-container">
+              <!-- Si l'image locale existe, elle s'affiche, sinon fallback vectoriel par app.js -->
+              <img id="quiz-img" class="visual-image" style="display: none;" src="" alt="Situation routière">
+              <div id="quiz-vector-fallback" class="visual-placeholder">
+                <!-- SVG de situation dessiné dynamiquement -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- Côté Droit : Question, Choix de réponses et Validation -->
+          <div class="quiz-control-side">
+            <span class="question-theme-badge" id="question-theme">Thème de la question</span>
+            <h2 class="question-text" id="question-text">Texte de la question...</h2>
+            
+            <!-- Liste des options A, B, C, D -->
+            <div class="options-list" id="options-container">
+              <!-- Injectées dynamiquement par app.js -->
+            </div>
+            
+            <!-- Actions de bas de page -->
+            <div class="quiz-actions">
+              <button class="btn btn-secondary" id="btn-quit-quiz">
+                <i data-lucide="arrow-left"></i> Quitter
+              </button>
+              <button class="btn btn-primary" id="btn-validate" disabled>
+                Valider <i data-lucide="check-circle-2"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+    </div>
+
+    <!-- ========================================= -->
+    <!-- MODALS & POP-UPS                          -->
+    <!-- ========================================= -->
+
+    <!-- 1. POP-UP D'EXPLICATION (SUCCÈS / INFRACTION) -->
+    <div class="modal-overlay" id="modal-explanation">
+      <div class="modal-card" id="explanation-card">
+        <div class="modal-header">
+          <div class="modal-icon-wrapper">
+            <i id="explanation-icon" data-lucide="info"></i>
+          </div>
+          <div class="modal-title">
+            <h3 id="explanation-title">INFRACTION DÉTECTÉE</h3>
+            <p id="explanation-subtitle">Code de la Route Béninois</p>
+          </div>
+        </div>
+        
+        <div class="explanation-body">
+          <div class="correct-answer-banner" id="explanation-correct-banner">
+            Réponse attendue : Option A
+          </div>
+          <p class="explanation-text" id="explanation-desc">
+            Explication de la règle...
+          </p>
+        </div>
+        
+        <button class="btn btn-primary" id="btn-next-step" style="width: 100%;">
+          Étape suivante <i data-lucide="arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. POP-UP GAME OVER (PANNE DE MOTEUR) -->
+    <div class="modal-overlay" id="modal-gameover">
+      <div class="modal-card gameover" style="max-width: 450px; text-align: center;">
+        <div class="modal-header" style="justify-content: center; flex-direction: column; text-align: center; gap: 0.5rem;">
+          <div class="modal-icon-wrapper" style="background-color: rgba(244, 63, 94, 0.1); border-color: var(--red-danger); color: var(--red-danger); width: 64px; height: 64px; margin: 0 auto;">
+            <i data-lucide="wrench" style="width: 32px; height: 32px;"></i>
+          </div>
+          <h3 style="font-family: var(--font-display); font-size: 1.5rem; color: var(--red-danger); margin-top: 0.5rem;">PANNE DE MOTEUR !</h3>
+          <p style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Élimination / Réservoir Vide</p>
+        </div>
+        
+        <div class="explanation-body" style="text-align: center;">
+          <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem;">
+            Vos vies ont été épuisées suite à de graves infractions au code de la route béninois. Votre véhicule est en panne de moteur forcée par l'ANaTT !
+          </p>
+          <div class="gameover-odometer">
+            <span id="gameover-progress-percent">0%</span> DU PARCOURS
+          </div>
+        </div>
+        
+        <button class="btn btn-primary" id="btn-restart-series" style="width: 100%; background: linear-gradient(135deg, var(--red-danger), var(--yellow-sign)); border: none; color: white;">
+          Faire les réparations &amp; Recommencer la série <i data-lucide="rotate-ccw"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. POP-UP DE SCORE INTERMÉDIAIRE (POSTE DE CONTRÔLE) -->
+    <div class="modal-overlay" id="modal-score">
+      <div class="modal-card" style="max-width: 420px; text-align: center;">
+        <div class="modal-header" style="justify-content: center; flex-direction: column; text-align: center;">
+          <div class="score-badge-circle" id="score-circle-wrapper">
+            <span class="score-number" id="score-obtained">18</span>
+            <span class="score-max">/ 20</span>
+          </div>
+          <h3 id="score-eval-title" style="font-family: var(--font-display); font-size: 1.4rem;">POSTE DE CONTRÔLE ANaTT</h3>
+          <p id="score-eval-subtitle" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--yellow-sign); text-transform: uppercase;">Rapport de conduite</p>
+        </div>
+        
+        <div class="explanation-body" style="text-align: center;">
+          <p id="score-eval-message" style="color: var(--text-secondary); font-size: 0.95rem;">
+            Excellent score ! Vous maîtrisez les règles de ce secteur de route. Continuez pour obtenir votre permis B !
+          </p>
+        </div>
+        
+        <button class="btn btn-primary" id="btn-resume-map" style="width: 100%;">
+          Continuer la route <i data-lucide="check-square"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. POP-UP DE VICTOIRE FINALE (PERMIS OBTENU) -->
+    <div class="modal-overlay" id="modal-victory">
+      <div class="modal-card success" style="max-width: 480px; text-align: center;">
+        <div class="modal-header" style="justify-content: center; flex-direction: column; text-align: center; gap: 0.5rem;">
+          <div class="modal-icon-wrapper" style="background-color: rgba(16, 185, 129, 0.1); border-color: var(--green-success); color: var(--green-success); width: 80px; height: 80px; margin: 0 auto; border-radius: 50%;">
+            <i data-lucide="party-popper" style="width: 40px; height: 40px;"></i>
+          </div>
+          <h3 style="font-family: var(--font-display); font-size: 1.6rem; color: var(--green-success); margin-top: 0.5rem;">FÉLICITATIONS !</h3>
+          <p style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--yellow-sign); text-transform: uppercase;">Permis de Conduire Catégorie B Obtenu</p>
+        </div>
+        
+        <div class="explanation-body" style="text-align: center;">
+          <p style="color: var(--text-primary); font-size: 1rem; font-weight: 500; margin-bottom: 0.75rem;">
+            Vous avez surmonté avec succès les 300 étapes de l'ANaTT !
+          </p>
+          <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Grâce à votre maîtrise absolue du cadre légal, du marquage au sol, de la signalisation verticale, des règles de priorité et de la mécanique de bord, vous êtes officiellement admis au permis de conduire au Bénin !
+          </p>
+          <div style="background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+            <i data-lucide="award" style="color: var(--yellow-sign); width: 32px; height: 32px;"></i>
+            <span style="font-family: var(--font-display); font-weight: 600; color: white;">ID Permis : BJ-2026-ANATT-300</span>
+          </div>
+        </div>
+        
+        <button class="btn btn-primary" id="btn-restart-game" style="width: 100%;">
+          Recommencer l'aventure <i data-lucide="rotate-ccw"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Chargement des fichiers JavaScript de données puis de logique -->
+    <script src="./questions.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

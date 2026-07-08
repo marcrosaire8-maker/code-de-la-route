@@ -1,0 +1,903 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg-dark: #070b13;
+  --bg-card: #0f1524;
+  --bg-input: #172036;
+  --neon-blue: #00e5ff;
+  --neon-blue-glow: rgba(0, 229, 255, 0.4);
+  --yellow-sign: #facc15;
+  --yellow-glow: rgba(250, 204, 21, 0.4);
+  --green-success: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.4);
+  --red-danger: #f43f5e;
+  --red-glow: rgba(244, 63, 94, 0.4);
+  --road-asphalt: #1e293b;
+  --road-stripe: #ffffff;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-color: #1e293b;
+  
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset et styles de base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-blue);
+}
+
+/* Dashboard Wrapper */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Top Navigation / Dashboard bar */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background-color: var(--bg-card);
+  border-bottom: 2px solid var(--border-color);
+  box-shadow: var(--shadow-premium);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--yellow-sign), var(--neon-blue));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+}
+
+.brand-title h1 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.brand-title span {
+  font-size: 0.75rem;
+  color: var(--yellow-sign);
+  font-family: var(--font-mono);
+  font-weight: bold;
+}
+
+.hud-panel {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.hud-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--bg-input);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.hud-item.lives-display {
+  border-color: var(--red-danger);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.1);
+}
+
+.hud-item.stars-display {
+  border-color: var(--yellow-sign);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.1);
+}
+
+.life-heart {
+  color: var(--red-danger);
+  filter: drop-shadow(0 0 3px var(--red-danger));
+  transition: transform 0.3s ease;
+}
+
+.life-heart.empty {
+  color: var(--border-color);
+  filter: none;
+}
+
+/* Écrans Principaux (Map vs Quiz) */
+.screen {
+  flex: 1;
+  overflow: hidden;
+  display: none;
+  position: relative;
+}
+
+.screen.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========================================= */
+/* 1. SECTION : LA MAP DE JEU (ROADMAP)      */
+/* ========================================= */
+.map-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.map-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: rgba(15, 21, 36, 0.8);
+  border-bottom: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+}
+
+.sector-navigator {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  max-width: 70%;
+  scrollbar-width: none;
+}
+
+.sector-navigator::-webkit-scrollbar {
+  display: none;
+}
+
+.sector-btn {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-smooth);
+}
+
+.sector-btn:hover {
+  border-color: var(--neon-blue);
+  color: var(--text-primary);
+}
+
+.sector-btn.active {
+  background-color: var(--neon-blue);
+  border-color: var(--neon-blue);
+  color: var(--bg-dark);
+  font-weight: 600;
+  box-shadow: 0 0 15px var(--neon-blue-glow);
+}
+
+.map-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.road-scroller {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  background-color: #04070d;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(0, 229, 255, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(250, 204, 21, 0.03) 0%, transparent 40%);
+  padding: 4rem 1rem;
+  scroll-behavior: smooth;
+}
+
+/* Le tracé de la Route */
+.road-track {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 2500px; /* Grande hauteur pour loger les étapes d'un secteur */
+}
+
+.road-asphalt-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  background-color: var(--road-asphalt);
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  border-right: 3px solid rgba(255, 255, 255, 0.15);
+  z-index: 1;
+}
+
+.road-asphalt-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  border-left: 4px dashed rgba(255, 255, 255, 0.5);
+  z-index: 2;
+}
+
+/* Les Noeuds de Niveaux */
+.map-node {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--bg-card);
+  border: 4px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+/* Placement en lacet (zig-zag) le long de la route */
+.map-node:nth-child(4n+1) {
+  margin-left: -120px;
+}
+.map-node:nth-child(4n+2) {
+  margin-left: -40px;
+}
+.map-node:nth-child(4n+3) {
+  margin-left: 40px;
+}
+.map-node:nth-child(4n+4) {
+  margin-left: 120px;
+}
+
+.map-node::after {
+  content: attr(data-step);
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.map-node:hover {
+  transform: translateX(-50%) scale(1.15);
+  box-shadow: 0 0 20px var(--neon-blue-glow);
+  z-index: 5;
+}
+
+/* États des Noeuds */
+.map-node.completed {
+  border-color: var(--green-success);
+  background-color: rgba(16, 185, 129, 0.2);
+}
+.map-node.completed::after {
+  content: '✓';
+  color: var(--green-success);
+  font-size: 1.1rem;
+}
+
+.map-node.active-node {
+  border-color: var(--neon-blue);
+  background-color: var(--bg-dark);
+  box-shadow: 0 0 20px var(--neon-blue-glow), inset 0 0 10px var(--neon-blue-glow);
+  animation: pulse-active 1.8s infinite ease-in-out;
+}
+.map-node.active-node::after {
+  color: var(--neon-blue);
+  font-size: 0.9rem;
+}
+
+.map-node.locked {
+  border-color: var(--border-color);
+  background-color: #0b0f19;
+  cursor: not-allowed;
+}
+.map-node.locked::after {
+  content: '🔒';
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+.map-node.locked:hover {
+  transform: translateX(-50%);
+  box-shadow: none;
+}
+
+/* Jalons d'examen / Péages de secteur */
+.road-checkpoint-banner {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.1), rgba(250, 204, 21, 0.25), rgba(250, 204, 21, 0.1));
+  border: 1px solid var(--yellow-sign);
+  border-radius: 8px;
+  padding: 0.5rem;
+  text-align: center;
+  z-index: 2;
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.15);
+}
+.road-checkpoint-banner h4 {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  color: var(--yellow-sign);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ========================================= */
+/* 2. SECTION : SALLE DE QUIZ                */
+/* ========================================= */
+.quiz-container {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .quiz-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    overflow-y: auto;
+  }
+}
+
+.quiz-visual-side {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-right: 1px solid var(--border-color);
+  background-color: rgba(7, 11, 19, 0.5);
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .quiz-visual-side {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem;
+  }
+}
+
+/* Barre de progression et Chrono */
+.quiz-progress-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.quiz-step-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--yellow-sign);
+}
+
+.timer-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.timer-bar-container {
+  width: 150px;
+  height: 8px;
+  background-color: var(--bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.timer-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-blue), var(--yellow-sign));
+  box-shadow: 0 0 8px var(--neon-blue-glow);
+  transition: width 1s linear;
+}
+
+.timer-text {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* Cadre de l'image de situation */
+.visual-card {
+  flex: 1;
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-premium);
+  min-height: 280px;
+}
+
+.visual-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.visual-placeholder {
+  width: 100%;
+  height: 100%;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Zone d'action de la question */
+.quiz-control-side {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .quiz-control-side {
+    padding: 1rem;
+    overflow-y: visible;
+  }
+}
+
+.question-theme-badge {
+  align-self: flex-start;
+  padding: 0.25rem 0.75rem;
+  background-color: rgba(250, 204, 21, 0.1);
+  border: 1px solid var(--yellow-sign);
+  color: var(--yellow-sign);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.question-text {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.option-card {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.option-card:hover {
+  border-color: var(--neon-blue);
+  background-color: rgba(0, 229, 255, 0.03);
+  transform: translateX(4px);
+}
+
+.option-card.selected {
+  border-color: var(--neon-blue);
+  background-color: rgba(0, 229, 255, 0.1);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+}
+
+.option-card.correct {
+  border-color: var(--green-success);
+  background-color: rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+.option-card.incorrect {
+  border-color: var(--red-danger);
+  background-color: rgba(244, 63, 94, 0.1);
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.15);
+}
+
+.option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: var(--transition-smooth);
+}
+
+.option-card.selected .option-letter {
+  background-color: var(--neon-blue);
+  color: var(--bg-dark);
+  border-color: var(--neon-blue);
+}
+
+.option-card.correct .option-letter {
+  background-color: var(--green-success);
+  color: white;
+  border-color: var(--green-success);
+}
+
+.option-card.incorrect .option-letter {
+  background-color: var(--red-danger);
+  color: white;
+  border-color: var(--red-danger);
+}
+
+/* Boutons d'Action */
+.quiz-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: auto;
+}
+
+.btn {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.btn-primary {
+  background-color: var(--neon-blue);
+  color: var(--bg-dark);
+  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.2);
+  flex: 1;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-secondary);
+  background-color: var(--bg-card);
+}
+
+/* ========================================= */
+/* 3. MODALS, POP-UPS ET PANNEAUX D'EFFETS   */
+/* ========================================= */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(4, 7, 13, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-card {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  padding: 2rem;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  animation: modal-entrance 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+/* Modal Succès vs Infraction */
+.modal-card.success::before {
+  background-color: var(--green-success);
+}
+.modal-card.infraction::before {
+  background-color: var(--red-danger);
+}
+.modal-card.gameover::before {
+  background: linear-gradient(90deg, var(--red-danger), var(--yellow-sign));
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.modal-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-card.success .modal-icon-wrapper {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--green-success);
+  color: var(--green-success);
+}
+
+.modal-card.infraction .modal-icon-wrapper {
+  background-color: rgba(244, 63, 94, 0.1);
+  border: 1px solid var(--red-danger);
+  color: var(--red-danger);
+}
+
+.modal-title h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.modal-title p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.explanation-body {
+  margin-bottom: 1.5rem;
+}
+
+.correct-answer-banner {
+  background-color: var(--bg-input);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--green-success);
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.explanation-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Écran Game Over */
+.gameover-visual {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.gameover-graphic {
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--red-danger);
+  text-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+  margin-bottom: 0.5rem;
+}
+
+.gameover-odometer {
+  display: inline-block;
+  background-color: #000;
+  border: 2px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  letter-spacing: 2px;
+  color: var(--yellow-sign);
+  box-shadow: inset 0 0 5px rgba(250,204,21,0.5);
+  margin: 1rem 0;
+}
+
+/* Écran Score Intermédiaire */
+.score-badge-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid var(--yellow-sign);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  background-color: rgba(250, 204, 21, 0.05);
+  box-shadow: 0 0 20px var(--yellow-glow);
+}
+
+.score-badge-circle .score-number {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--yellow-sign);
+  line-height: 1;
+}
+
+.score-badge-circle .score-max {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* Animations d'effets */
+@keyframes pulse-active {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(0, 229, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0);
+  }
+}
+
+@keyframes modal-entrance {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.shake {
+  animation: shake-animation 0.5s ease-in-out;
+}
+
+@keyframes shake-animation {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+/* Dashboard Odometer */
+.stats-bar {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem;
+  background-color: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-val {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--neon-blue);
+}
+
+/* SVG Situation styling */
+.svg-road-scene {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border-radius: 8px;
+}

@@ -1,0 +1,932 @@
+/**
+ * Logique du Jeu de Code de la Route Béninois (ANaTT)
+ * Moteur de jeu autonome 100% Client-side en JavaScript Vanille
+ */
+
+// Configuration des Secteurs Académiques de l'ANaTT
+const SECTEURS = [
+  { id: 1, nom: "Cadre Légal", debut: 1, fin: 30, description: "Permis B, pièces, infractions & sanctions" },
+  { id: 2, nom: "Marquage au Sol", debut: 31, fin: 80, description: "Lignes, zébras, flèches de sélection" },
+  { id: 3, nom: "Signalisation", debut: 81, fin: 150, description: "Panneaux, balises, feux et agents" },
+  { id: 4, nom: "Priorités", debut: 151, fin: 220, description: "Priorités de passage, stop, ronds-points" },
+  { id: 5, nom: "Mécanique", debut: 221, fin: 260, description: "Voyants, 4 temps moteur, fluides, pannes" },
+  { id: 6, nom: "Circuit ANaTT", debut: 261, fin: 300, description: "Manœuvres d'examen, secourisme, P.A.S" }
+];
+
+// État global de l'application
+let gameState = {
+  unlockedStep: 1,        // Étape maximale débloquée globalement (1 à 300)
+  activeStepId: null,      // Étape en cours de jeu
+  activeSectorIndex: 0,    // Secteur actuellement affiché sur la Map
+  lives: 5,               // 5 barres de carburant / vies
+  selectedOption: null,    // Option sélectionnée (A, B, C ou D)
+  timeLeft: 30,           // Chrono de 30 secondes par défaut
+  timerInterval: null,     // Pointeur de l'intervalle du chrono
+  completedSteps: [],     // Liste des IDs d'étapes validées
+  
+  // Statistiques de la série de 20 questions en cours
+  seriesCorrect: 0,
+  seriesTotal: 0,
+  seriesQuestionsPlayed: [], // Historique des étapes jouées dans cette série
+  seriesFirstAttemptResults: {} // Pour calculer la note finale sur 20 sans triche
+};
+
+// ==========================================
+// INITIALISATION DE L'APPLICATION
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+  chargerProgression();
+  genererOngletsSecteurs();
+  initEvenements();
+  afficherMapSecteur(gameState.activeSectorIndex);
+  mettreAJourTableauDeBord();
+  
+  // Initialisation des icônes Lucide
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+});
+
+// Charger la progression depuis le localStorage
+function chargerProgression() {
+  const sauvegarde = localStorage.getItem("code_benin_sauvegarde");
+  if (sauvegarde) {
+    try {
+      const data = JSON.parse(sauvegarde);
+      gameState.unlockedStep = data.unlockedStep || 1;
+      gameState.completedSteps = data.completedSteps || [];
+      
+      // Trouver automatiquement l'onglet actif en fonction de l'étape débloquée
+      const activeSector = SECTEURS.find(s => gameState.unlockedStep >= s.debut && gameState.unlockedStep <= s.fin);
+      if (activeSector) {
+        gameState.activeSectorIndex = SECTEURS.indexOf(activeSector);
+      }
+    } catch (e) {
+      console.error("Erreur de lecture de la sauvegarde", e);
+    }
+  }
+}
+
+// Sauvegarder la progression dans le localStorage
+function sauvegarderProgression() {
+  const data = {
+    unlockedStep: gameState.unlockedStep,
+    completedSteps: gameState.completedSteps
+  };
+  localStorage.setItem("code_benin_sauvegarde", JSON.stringify(data));
+}
+
+// Réinitialiser complètement le jeu
+function reinitialiserJeu() {
+  localStorage.removeItem("code_benin_sauvegarde");
+  gameState.unlockedStep = 1;
+  gameState.completedSteps = [];
+  gameState.activeSectorIndex = 0;
+  gameState.lives = 5;
+  gameState.seriesCorrect = 0;
+  gameState.seriesTotal = 0;
+  gameState.seriesQuestionsPlayed = [];
+  gameState.seriesFirstAttemptResults = {};
+  
+  sauvegarderProgression();
+  afficherMapSecteur(0);
+  mettreAJourTableauDeBord();
+  fermerTousModals();
+}
+
+// ==========================================
+// REPRÉSENTATION DU CODE DE LA ROUTE EN SVG
+// ==========================================
+function genererSVGDefinition(id, theme, questionText) {
+  // Palette de couleurs premium
+  const c = {
+    asphalt: "#1e293b",
+    grass: "#0b1329",
+    stripe: "#ffffff",
+    carBlue: "#00e5ff",
+    carOrange: "#facc15",
+    signRed: "#ef4444",
+    signBlue: "#2563eb",
+    yellowGlow: "#ffd600",
+    white: "#ffffff",
+    dark: "#070b13",
+    zebra: "#ffffff"
+  };
+
+  // Base commune
+  let svg = `<svg viewBox="0 0 320 220" class="svg-road-scene" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<rect width="320" height="220" fill="${c.grass}" />`;
+
+  // Dessins thématiques hautement optimisés
+  if (theme === "Cadre Légal") {
+    // Dessiner une carte d'identité ou un permis de conduire officiel ANaTT Bénin
+    svg += `
+      <!-- Fond du Permis -->
+      <rect x="30" y="30" width="260" height="160" rx="12" fill="${c.asphalt}" stroke="${c.carBlue}" stroke-width="2" />
+      <rect x="40" y="40" width="240" height="30" rx="6" fill="${c.dark}" />
+      <text x="50" y="60" fill="${c.yellowGlow}" font-family="monospace" font-size="11" font-weight="bold">RÉPUBLIQUE DU BÉNIN - ANaTT</text>
+      
+      <!-- Photo de profil fictive -->
+      <rect x="50" y="85" width="60" height="75" rx="6" fill="${c.dark}" stroke="${c.stripe}" stroke-width="1" />
+      <circle cx="80" cy="115" r="15" fill="${c.textSecondary || '#555'}" />
+      <path d="M60 155 Q80 135 100 155 Z" fill="${c.textSecondary || '#555'}" />
+      
+      <!-- Textes du Permis B -->
+      <text x="125" y="100" fill="${c.white}" font-family="sans-serif" font-size="10" font-weight="bold">PERMIS DE CONDUIRE</text>
+      <text x="125" y="115" fill="${c.carBlue}" font-family="monospace" font-size="9">CATÉGORIE : B</text>
+      <text x="125" y="130" fill="${c.white}" font-family="sans-serif" font-size="8">PTAC Max : 3.5 Tonnes</text>
+      <text x="125" y="142" fill="${c.white}" font-family="sans-serif" font-size="8">Places : 9 (Conducteur inclus)</text>
+      <text x="125" y="154" fill="${c.yellowGlow}" font-family="sans-serif" font-size="8">Âge minimum : 18 ans</text>
+    `;
+  } 
+  else if (theme === "Marquage au sol") {
+    // Dessiner une route asphalte avec marquage selon la question
+    let isLineContinue = questionText.toLowerCase().includes("continue");
+    let isZebra = questionText.toLowerCase().includes("zébra") || questionText.toLowerCase().includes("zebra");
+    let isYellow = questionText.toLowerCase().includes("jaune");
+    
+    // Dessiner la route
+    svg += `
+      <rect x="80" y="0" width="160" height="220" fill="#111827" />
+      <line x1="80" y1="0" x2="80" y2="220" stroke="${c.white}" stroke-width="3" />
+      <line x1="240" y1="0" x2="240" y2="220" stroke="${c.white}" stroke-width="3" stroke-dasharray="${isYellow ? 'none' : 'none'}" />
+    `;
+
+    if (isYellow) {
+      // Ligne jaune sur le trottoir / bord de route
+      svg += `
+        <line x1="235" y1="0" x2="235" y2="220" stroke="${c.carOrange}" stroke-width="6" stroke-dasharray="${questionText.toLowerCase().includes("discontinue") ? '10,10' : 'none'}" />
+        <text x="250" y="110" fill="${c.carOrange}" font-family="sans-serif" font-size="10" font-weight="bold" transform="rotate(90 250 110)">TROTTOIR</text>
+      `;
+    }
+
+    if (isZebra) {
+      // Zone de zébras
+      svg += `
+        <path d="M 100 40 L 220 180" stroke="${c.white}" stroke-width="12" stroke-dasharray="10,15" />
+        <path d="M 120 20 L 220 140" stroke="${c.white}" stroke-width="12" stroke-dasharray="10,15" />
+        <text x="150" y="200" fill="${c.white}" font-family="sans-serif" font-size="8" text-anchor="middle">ZÉBRAS : INTERDIT DE CIRCULER</text>
+      `;
+    } else if (!isYellow) {
+      // Ligne médiane
+      if (isLineContinue) {
+        svg += `<line x1="160" y1="0" x2="160" y2="220" stroke="${c.white}" stroke-width="4" />`;
+      } else {
+        svg += `<line x1="160" y1="0" x2="160" y2="220" stroke="${c.white}" stroke-width="4" stroke-dasharray="15,15" />`;
+      }
+    }
+
+    // Dessiner une petite voiture bleue
+    svg += `
+      <g transform="translate(110, 120)">
+        <rect x="0" y="0" width="24" height="40" rx="4" fill="${c.carBlue}" />
+        <rect x="3" y="8" width="18" height="10" rx="2" fill="${c.dark}" />
+        <rect x="4" y="24" width="16" height="8" rx="1" fill="${c.dark}" />
+        <circle cx="4" cy="5" r="2" fill="${c.white}" />
+        <circle cx="20" cy="5" r="2" fill="${c.white}" />
+      </g>
+    `;
+  }
+  else if (theme === "Signalisation") {
+    // Dessiner un panneau de signalisation
+    let isDanger = questionText.toLowerCase().includes("danger") || questionText.toLowerCase().includes("triangulaire") || questionText.toLowerCase().includes("balise");
+    let isObligation = questionText.toLowerCase().includes("obligation") || questionText.toLowerCase().includes("obligatoire");
+    
+    if (isDanger) {
+      // Panneau triangulaire à bord rouge
+      svg += `
+        <!-- Support du panneau -->
+        <rect x="157" y="100" width="6" height="100" fill="#666" />
+        
+        <!-- Triangle Danger -->
+        <polygon points="160,30 110,110 210,110" fill="${c.white}" stroke="${c.signRed}" stroke-width="8" stroke-linejoin="round" />
+        
+        <!-- Symbole intérieur (Point d'exclamation) -->
+        <rect x="157" y="60" width="6" height="25" rx="3" fill="${c.dark}" />
+        <circle cx="160" cy="95" r="4.5" fill="${c.dark}" />
+        
+        <!-- Texte de position -->
+        <rect x="10" y="170" width="140" height="40" rx="6" fill="${c.dark}" stroke="${c.carBlue}" />
+        <text x="80" y="185" fill="${c.white}" font-family="sans-serif" font-size="8" text-anchor="middle" font-weight="bold">AGGLOMÉRATION : 50m</text>
+        <text x="80" y="200" fill="${c.yellowGlow}" font-family="sans-serif" font-size="8" text-anchor="middle" font-weight="bold">CAMPAGNE : 150m</text>
+      `;
+    } else if (isObligation) {
+      // Panneau circulaire bleu
+      svg += `
+        <rect x="157" y="100" width="6" height="100" fill="#666" />
+        <circle cx="160" cy="80" r="45" fill="${c.signBlue}" stroke="${c.white}" stroke-width="4" />
+        <!-- Flèche obligation vers la droite -->
+        <path d="M 130 80 L 180 80 M 165 65 L 180 80 L 165 95" stroke="${c.white}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      `;
+    } else {
+      // Panneau interdiction circulaire blanc bordé de rouge
+      svg += `
+        <rect x="157" y="100" width="6" height="100" fill="#666" />
+        <circle cx="160" cy="80" r="45" fill="${c.white}" stroke="${c.signRed}" stroke-width="8" />
+        <!-- Texte de limitation fictive 50 -->
+        <text x="160" y="92" fill="${c.dark}" font-family="sans-serif" font-size="32" font-weight="bold" text-anchor="middle">50</text>
+      `;
+    }
+  }
+  else if (theme === "Priorités") {
+    // Dessiner une intersection routière
+    svg += `
+      <!-- L'intersection -->
+      <rect x="110" y="0" width="100" height="220" fill="${c.asphalt}" />
+      <rect x="0" y="60" width="320" height="100" fill="${c.asphalt}" />
+      
+      <!-- Marquage au sol de l'intersection -->
+      <line x1="160" y1="0" x2="160" y2="50" stroke="${c.white}" stroke-width="2" stroke-dasharray="8,8" />
+      <line x1="160" y1="170" x2="160" y2="220" stroke="${c.white}" stroke-width="2" stroke-dasharray="8,8" />
+      <line x1="0" y1="110" x2="100" y2="110" stroke="${c.white}" stroke-width="2" stroke-dasharray="8,8" />
+      <line x1="220" y1="110" x2="320" y2="110" stroke="${c.white}" stroke-width="2" stroke-dasharray="8,8" />
+      
+      <!-- Voiture A (Bleue, venant du bas) -->
+      <g transform="translate(170, 170)">
+        <rect x="0" y="0" width="20" height="32" rx="3" fill="${c.carBlue}" />
+        <text x="10" y="20" fill="white" font-size="10" font-weight="bold" text-anchor="middle">A</text>
+      </g>
+      
+      <!-- Voiture B (Jaune, venant de droite) -->
+      <g transform="translate(240, 75)">
+        <rect x="0" y="0" width="32" height="20" rx="3" fill="${c.carOrange}" />
+        <text x="16" y="14" fill="black" font-size="10" font-weight="bold" text-anchor="middle">B</text>
+      </g>
+      
+      <!-- Flèches directionnelles prioritaires -->
+      <path d="M 180 160 L 180 120 L 140 120" stroke="${c.yellowGlow}" stroke-width="3" stroke-dasharray="5,2" fill="none" marker-end="url(#arrow)" />
+      <path d="M 235 85 L 180 85" stroke="${c.carOrange}" stroke-width="2" stroke-dasharray="5,2" fill="none" />
+      
+      <!-- Panneau de priorité ou texte -->
+      <rect x="5" y="10" width="100" height="40" rx="4" fill="${c.dark}" stroke="${c.yellowGlow}" />
+      <text x="55" y="25" fill="${c.yellowGlow}" font-family="sans-serif" font-size="8" text-anchor="middle" font-weight="bold">PRIORITÉ À DROITE</text>
+      <text x="55" y="38" fill="${c.white}" font-family="sans-serif" font-size="7" text-anchor="middle">Qui passe en premier ?</text>
+    `;
+  }
+  else if (theme === "Mécanique") {
+    // Dessiner un tableau de bord ou un voyant d'alerte mécanique
+    let isOil = questionText.toLowerCase().includes("huile");
+    let isBattery = questionText.toLowerCase().includes("batterie") || questionText.toLowerCase().includes("alternateur");
+    
+    svg += `
+      <!-- Cadre du cadran -->
+      <circle cx="160" cy="110" r="90" fill="${c.dark}" stroke="${c.asphalt}" stroke-width="6" />
+      <circle cx="160" cy="110" r="80" fill="#030712" />
+    `;
+
+    if (isOil) {
+      // Voyant Burette d'huile rouge
+      svg += `
+        <path d="M 120 120 Q 140 100 170 110 L 200 100 Q 205 110 200 115 L 185 115 Q 165 135 120 120 Z" fill="${c.signRed}" />
+        <path d="M 195 95 L 195 105" stroke="${c.signRed}" stroke-width="3" />
+        <circle cx="118" cy="120" r="2" fill="${c.signRed}" />
+        <text x="160" y="150" fill="${c.signRed}" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">PRESSION D'HUILE</text>
+        <text x="160" y="165" fill="${c.white}" font-family="sans-serif" font-size="8" text-anchor="middle">Arrêt Immédiat !</text>
+      `;
+    } else if (isBattery) {
+      // Voyant Batterie rouge/orange
+      svg += `
+        <rect x="120" y="90" width="80" height="50" rx="4" fill="none" stroke="${c.signRed}" stroke-width="4" />
+        <!-- Bornes + et - -->
+        <rect x="135" y="82" width="10" height="8" fill="${c.signRed}" />
+        <rect x="175" y="82" width="10" height="8" fill="${c.signRed}" />
+        <!-- Signes -->
+        <text x="140" y="115" fill="${c.signRed}" font-family="sans-serif" font-size="20" font-weight="bold" text-anchor="middle">-</text>
+        <text x="180" y="115" fill="${c.signRed}" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle">+</text>
+        <text x="160" y="170" fill="${c.signRed}" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">CHARGE BATTERIE</text>
+      `;
+    } else {
+      // Compte-tours
+      svg += `
+        <path d="M 100 160 A 70 70 0 1 1 220 160" fill="none" stroke="${c.asphalt}" stroke-width="8" stroke-linecap="round" />
+        <path d="M 100 160 A 70 70 0 1 1 180 70" fill="none" stroke="${c.carBlue}" stroke-width="8" stroke-linecap="round" />
+        <!-- Aiguille -->
+        <line x1="160" y1="110" x2="185" y2="65" stroke="${c.signRed}" stroke-width="3" stroke-linecap="round" />
+        <circle cx="160" cy="110" r="8" fill="${c.stripe}" />
+        <text x="160" y="140" fill="${c.white}" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle">3000 RPM</text>
+      `;
+    }
+  } else {
+    // Circuit ANaTT / Manœuvres
+    svg += `
+      <!-- Circuit de piquets (Slalom / Créneau) -->
+      <rect x="50" y="20" width="220" height="180" rx="10" fill="none" stroke="${c.asphalt}" stroke-width="8" />
+      
+      <!-- Piquets d'examen (jalonnement) -->
+      <circle cx="90" cy="60" r="5" fill="${c.carOrange}" />
+      <circle cx="90" cy="110" r="5" fill="${c.carOrange}" />
+      <circle cx="90" cy="160" r="5" fill="${c.carOrange}" />
+      
+      <circle cx="230" cy="60" r="5" fill="${c.carOrange}" />
+      <circle cx="230" cy="110" r="5" fill="${c.carOrange}" />
+      <circle cx="230" cy="160" r="5" fill="${c.carOrange}" />
+      
+      <!-- Voiture effectuant la manœuvre -->
+      <g transform="translate(140, 130)">
+        <rect x="0" y="0" width="20" height="35" rx="3" fill="${c.carBlue}" />
+        <rect x="2" y="8" width="16" height="8" fill="${c.dark}" />
+        <!-- Clignotant arrière gauche orange -->
+        <circle cx="2" cy="33" r="1.5" fill="${c.carOrange}" />
+      </g>
+      
+      <!-- Flèche sinueuse de Slalom -->
+      <path d="M 150 190 Q 110 160 150 130 Q 190 100 150 70 Q 110 40 150 25" stroke="${c.yellowGlow}" stroke-width="2" stroke-dasharray="5,3" fill="none" />
+      <text x="160" y="212" fill="${c.white}" font-family="sans-serif" font-size="8" text-anchor="middle">CIRCUIT OFFICIEL ANaTT : SLALOM</text>
+    `;
+  }
+
+  // Définitions partagées
+  svg += `
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="${c.yellowGlow}" />
+      </marker>
+    </defs>
+  `;
+
+  svg += `</svg>`;
+  return svg;
+}
+
+// ==========================================
+// RENDER DE LA MAP (ROADMAP)
+// ==========================================
+function genererOngletsSecteurs() {
+  const container = document.getElementById("sector-tabs");
+  container.innerHTML = "";
+  
+  SECTEURS.forEach((secteur, index) => {
+    const btn = document.createElement("button");
+    btn.className = `sector-btn ${index === gameState.activeSectorIndex ? "active" : ""}`;
+    btn.textContent = secteur.nom;
+    btn.title = secteur.description;
+    btn.onclick = () => {
+      gameState.activeSectorIndex = index;
+      mettreAJourOngletsActifs();
+      afficherMapSecteur(index);
+    };
+    container.appendChild(btn);
+  });
+}
+
+function mettreAJourOngletsActifs() {
+  const boutons = document.querySelectorAll(".sector-btn");
+  boutons.forEach((btn, index) => {
+    if (index === gameState.activeSectorIndex) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+}
+
+function afficherMapSecteur(sectorIndex) {
+  const trackContainer = document.getElementById("road-track");
+  
+  // Supprimer les anciens nœuds de la map
+  const anciensNoeuds = trackContainer.querySelectorAll(".map-node, .road-checkpoint-banner");
+  anciensNoeuds.forEach(el => el.remove());
+  
+  const secteur = SECTEURS[sectorIndex];
+  
+  // Ajuster la hauteur de la piste d'asphalte par rapport au nombre d'étapes
+  const totalEtapesSecteur = (secteur.fin - secteur.debut) + 1;
+  const hauteurEtape = 90; // Pixels entre deux étapes
+  const hauteurPiste = (totalEtapesSecteur * hauteurEtape) + 150;
+  trackContainer.style.minHeight = `${hauteurPiste}px`;
+  
+  let topPosition = 80;
+  
+  // Générer les étapes de ce secteur
+  for (let stepId = secteur.debut; stepId <= secteur.fin; stepId++) {
+    const node = document.createElement("div");
+    node.className = "map-node";
+    node.setAttribute("data-step", stepId);
+    node.style.top = `${topPosition}px`;
+    
+    // Évaluation de l'état du niveau
+    if (gameState.completedSteps.includes(stepId)) {
+      node.classList.add("completed");
+    } else if (stepId === gameState.unlockedStep) {
+      node.classList.add("active-node");
+    } else if (stepId > gameState.unlockedStep) {
+      node.classList.add("locked");
+    }
+    
+    // Événement clic sur le niveau
+    node.onclick = () => {
+      if (stepId <= gameState.unlockedStep) {
+        lancerQuizNiveau(stepId);
+      }
+    };
+    
+    trackContainer.appendChild(node);
+    
+    // Placer un drapeau d'examen ou un péage intermédiaire tous les 20 niveaux
+    if (stepId % 20 === 0) {
+      const banner = document.createElement("div");
+      banner.className = "road-checkpoint-banner";
+      banner.style.top = `${topPosition + 45}px`;
+      banner.innerHTML = `<h4>🚧 POSTE DE CONTRÔLE ${stepId / 20}</h4>`;
+      trackContainer.appendChild(banner);
+    }
+    
+    topPosition += hauteurEtape;
+  }
+  
+  // Mettre à jour l'odomètre en bas
+  document.getElementById("stat-current-sector").textContent = secteur.nom;
+  
+  // Centrer automatiquement le scroll sur le niveau actif du secteur en cours
+  setTimeout(() => {
+    const noeudActif = trackContainer.querySelector(".active-node");
+    if (noeudActif) {
+      noeudActif.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, 150);
+}
+
+// ==========================================
+// GESTION DU MODE DE QUIZ (SALLE DE QUIZ)
+// ==========================================
+function lancerQuizNiveau(stepId) {
+  gameState.activeStepId = stepId;
+  gameState.selectedOption = null;
+  gameState.timeLeft = 30;
+  
+  // Déterminer la série de 20 questions active (1-20, 21-40, etc.)
+  const debutSerie = Math.floor((stepId - 1) / 20) * 20 + 1;
+  const finSerie = debutSerie + 19;
+  
+  // Si le joueur débute une nouvelle série de 20 ou recommence, on initialise ses stats
+  if (!gameState.seriesQuestionsPlayed.includes(stepId)) {
+    // Si on a changé de bloc de 20, on réinitialise les vies et le compteur de série
+    const activeSeriesBoundary = `S_${debutSerie}_${finSerie}`;
+    if (gameState.lastSeriesBoundary !== activeSeriesBoundary) {
+      gameState.lives = 5;
+      gameState.seriesCorrect = 0;
+      gameState.seriesTotal = 0;
+      gameState.seriesQuestionsPlayed = [];
+      gameState.seriesFirstAttemptResults = {};
+      gameState.lastSeriesBoundary = activeSeriesBoundary;
+    }
+  }
+
+  // Changer d'écran
+  document.getElementById("screen-map").classList.remove("active");
+  document.getElementById("screen-quiz").classList.add("active");
+  
+  // Charger la question
+  const questionObj = window.BANQUE_QUESTIONS.find(q => q.id === stepId);
+  if (!questionObj) {
+    console.error("Question introuvable pour l'étape : " + stepId);
+    quitterQuiz();
+    return;
+  }
+  
+  // Remplir les données de l'interface
+  document.getElementById("quiz-step-indicator").textContent = `Étape ${stepId} sur 300`;
+  document.getElementById("question-theme").textContent = questionObj.theme;
+  document.getElementById("question-text").textContent = questionObj.question;
+  
+  // Générer le visuel de la question en SVG
+  const vectorContainer = document.getElementById("quiz-vector-fallback");
+  vectorContainer.innerHTML = genererSVGDefinition(stepId, questionObj.theme, questionObj.question);
+  
+  // Remplir les options de réponse
+  const optionsContainer = document.getElementById("options-container");
+  optionsContainer.innerHTML = "";
+  
+  const lettres = ["A", "B", "C", "D"];
+  questionObj.options.forEach((opt, idx) => {
+    const card = document.createElement("div");
+    card.className = "option-card";
+    card.onclick = () => selectionnerOption(lettres[idx], card);
+    
+    const letterBox = document.createElement("div");
+    letterBox.className = "option-letter";
+    letterBox.textContent = lettres[idx];
+    
+    const optText = document.createElement("span");
+    // Extraire le texte de l'option (retirer "A) " pour un affichage plus propre si nécessaire, mais le garder est bien aussi)
+    optText.textContent = opt;
+    
+    card.appendChild(letterBox);
+    card.appendChild(optText);
+    optionsContainer.appendChild(card);
+  });
+  
+  // Reset bouton Valider
+  const btnValider = document.getElementById("btn-validate");
+  btnValider.disabled = true;
+  btnValider.innerHTML = `Valider <i data-lucide="check-circle-2"></i>`;
+  if (window.lucide) window.lucide.createIcons();
+  
+  // Lancer le chronomètre
+  demarrerChrono();
+  mettreAJourTableauDeBord();
+}
+
+function selectionnerOption(lettre, elementOption) {
+  // Désélectionner les anciennes
+  const cards = document.querySelectorAll(".option-card");
+  cards.forEach(c => c.classList.remove("selected"));
+  
+  // Sélectionner la nouvelle
+  elementOption.classList.add("selected");
+  gameState.selectedOption = lettre;
+  
+  // Activer le bouton de validation
+  document.getElementById("btn-validate").disabled = false;
+}
+
+// ==========================================
+// MOTEUR DU CHRONOMÈTRE
+// ==========================================
+function demarrerChrono() {
+  clearInterval(gameState.timerInterval);
+  gameState.timeLeft = 30;
+  mettreAJourChronoVisuel();
+  
+  gameState.timerInterval = setInterval(() => {
+    gameState.timeLeft--;
+    mettreAJourChronoVisuel();
+    
+    if (gameState.timeLeft <= 0) {
+      clearInterval(gameState.timerInterval);
+      gererPanneDeTemps();
+    }
+  }, 1000);
+}
+
+function mettreAJourChronoVisuel() {
+  const bar = document.getElementById("timer-liquid-bar");
+  const text = document.getElementById("timer-text");
+  
+  const pourcentage = (gameState.timeLeft / 30) * 100;
+  bar.style.width = `${pourcentage}%`;
+  text.textContent = `${gameState.timeLeft}s`;
+  
+  // Alerte de temps faible (en rouge)
+  if (gameState.timeLeft <= 8) {
+    bar.style.background = "var(--red-danger)";
+    text.style.color = "var(--red-danger)";
+  } else {
+    bar.style.background = "linear-gradient(90deg, var(--neon-blue), var(--yellow-sign))";
+    text.style.color = "var(--text-primary)";
+  }
+}
+
+function gererPanneDeTemps() {
+  // La question est considérée comme fausse
+  penaliserErreur("Temps écoulé ! Vous devez répondre plus rapidement sur la route.");
+}
+
+// ==========================================
+// VÉRIFICATION DE LA RÉPONSE
+// ==========================================
+function validerReponseActive() {
+  if (!gameState.selectedOption) return;
+  clearInterval(gameState.timerInterval);
+  
+  const questionObj = window.BANQUE_QUESTIONS.find(q => q.id === gameState.activeStepId);
+  const reponseCorrecte = questionObj.reponsesCorrectes[0]; // Gère le choix simple d'abord
+  
+  const cards = document.querySelectorAll(".option-card");
+  const lettres = ["A", "B", "C", "D"];
+  
+  // Enregistrer le premier essai pour le calcul de la note finale
+  if (!(gameState.activeStepId in gameState.seriesFirstAttemptResults)) {
+    gameState.seriesFirstAttemptResults[gameState.activeStepId] = (gameState.selectedOption === reponseCorrecte);
+  }
+  
+  if (gameState.selectedOption === reponseCorrecte) {
+    // Succès !
+    cards.forEach((card, idx) => {
+      if (lettres[idx] === reponseCorrecte) {
+        card.classList.add("correct");
+      }
+    });
+    
+    // Enregistrer le succès dans les statistiques de série
+    if (!gameState.seriesQuestionsPlayed.includes(gameState.activeStepId)) {
+      gameState.seriesQuestionsPlayed.push(gameState.activeStepId);
+      gameState.seriesTotal++;
+      gameState.seriesCorrect++;
+    }
+    
+    // Débloquer le niveau suivant
+    if (!gameState.completedSteps.includes(gameState.activeStepId)) {
+      gameState.completedSteps.push(gameState.activeStepId);
+    }
+    
+    if (gameState.activeStepId === gameState.unlockedStep && gameState.unlockedStep < 300) {
+      gameState.unlockedStep = gameState.activeStepId + 1;
+    }
+    
+    sauvegarderProgression();
+    
+    // Afficher le pop-up de succès avec explications pédagogiques
+    setTimeout(() => {
+      afficherModalExplication(true, questionObj);
+    }, 400);
+    
+  } else {
+    // Erreur !
+    cards.forEach((card, idx) => {
+      if (lettres[idx] === gameState.selectedOption) {
+        card.classList.add("incorrect");
+      }
+      if (lettres[idx] === reponseCorrecte) {
+        card.classList.add("correct");
+      }
+    });
+    
+    // Secouer la carte visuelle pour l'effet d'accident
+    document.getElementById("visual-card-container").classList.add("shake");
+    setTimeout(() => {
+      document.getElementById("visual-card-container").classList.remove("shake");
+    }, 500);
+    
+    // Enregistrer l'infraction dans les statistiques de série
+    if (!gameState.seriesQuestionsPlayed.includes(gameState.activeStepId)) {
+      gameState.seriesQuestionsPlayed.push(gameState.activeStepId);
+      gameState.seriesTotal++;
+    }
+    
+    // Soustraire une vie
+    gameState.lives--;
+    mettreAJourTableauDeBord();
+    
+    // Vérifier si Game Over (Panne de moteur)
+    setTimeout(() => {
+      if (gameState.lives <= 0) {
+        afficherModalGameOver();
+      } else {
+        afficherModalExplication(false, questionObj);
+      }
+    }, 600);
+  }
+}
+
+// Pénalisation d'erreur suite à une panne de temps
+function penaliserErreur(raisonExplication) {
+  clearInterval(gameState.timerInterval);
+  
+  const questionObj = window.BANQUE_QUESTIONS.find(q => q.id === gameState.activeStepId);
+  const reponseCorrecte = questionObj.reponsesCorrectes[0];
+  
+  // Premier essai faux
+  if (!(gameState.activeStepId in gameState.seriesFirstAttemptResults)) {
+    gameState.seriesFirstAttemptResults[gameState.activeStepId] = false;
+  }
+  
+  if (!gameState.seriesQuestionsPlayed.includes(gameState.activeStepId)) {
+    gameState.seriesQuestionsPlayed.push(gameState.activeStepId);
+    gameState.seriesTotal++;
+  }
+  
+  gameState.lives--;
+  mettreAJourTableauDeBord();
+  
+  setTimeout(() => {
+    if (gameState.lives <= 0) {
+      afficherModalGameOver();
+    } else {
+      // Afficher le modal d'infraction
+      afficherModalExplication(false, questionObj, raisonExplication);
+    }
+  }, 500);
+}
+
+// ==========================================
+// POPUPS ET MODALS (AFFICHAGE)
+// ==========================================
+function afficherModalExplication(isCorrect, questionObj, customExplicationText = null) {
+  const modal = document.getElementById("modal-explanation");
+  const card = document.getElementById("explanation-card");
+  const icon = document.getElementById("explanation-icon");
+  const title = document.getElementById("explanation-title");
+  const correctBanner = document.getElementById("explanation-correct-banner");
+  const desc = document.getElementById("explanation-desc");
+  
+  // Style dynamique vert ou rouge
+  if (isCorrect) {
+    card.className = "modal-card success";
+    icon.setAttribute("data-lucide", "check-circle");
+    title.textContent = "EXCELLENT CONDUITE !";
+    title.style.color = "var(--green-success)";
+    correctBanner.textContent = `Vous avez répondu juste : Option ${questionObj.reponsesCorrectes[0]}`;
+    correctBanner.style.borderLeftColor = "var(--green-success)";
+  } else {
+    card.className = "modal-card infraction";
+    icon.setAttribute("data-lucide", "shield-alert");
+    title.textContent = "INFRACTION CONSTATÉE !";
+    title.style.color = "var(--red-danger)";
+    correctBanner.textContent = `La bonne réponse était : Option ${questionObj.reponsesCorrectes[0]}`;
+    correctBanner.style.borderLeftColor = "var(--red-danger)";
+  }
+  
+  // Explication pédagogique
+  let explicationHtml = "";
+  if (customExplicationText) {
+    explicationHtml += `<strong>${customExplicationText}</strong><br><br>`;
+  }
+  explicationHtml += questionObj.explication;
+  desc.innerHTML = explicationHtml;
+  
+  // Recréer les icônes lucide dans le modal
+  if (window.lucide) window.lucide.createIcons();
+  
+  modal.classList.add("active");
+  
+  // Action de validation d'étape
+  document.getElementById("btn-next-step").onclick = () => {
+    fermerTousModals();
+    progresserApresExplication();
+  };
+}
+
+function progresserApresExplication() {
+  // Est-ce qu'on a atteint la fin du bloc de 20 questions de la série en cours ?
+  // Une série se valide aux étapes multiples de 20 (20, 40, 60, etc.)
+  const stepFini = gameState.activeStepId;
+  const estMultipleDeVingt = (stepFini % 20 === 0);
+  
+  if (estMultipleDeVingt && gameState.completedSteps.includes(stepFini)) {
+    // Afficher l'écran de note intermédiaire sur 20
+    afficherModalNoteIntermediaire(stepFini);
+  } else {
+    // Si c'est l'étape 300 et qu'il l'a réussie, victoire totale !
+    if (stepFini === 300 && gameState.completedSteps.includes(300)) {
+      afficherModalVictoireFinale();
+    } else {
+      quitterQuiz();
+    }
+  }
+}
+
+function afficherModalNoteIntermediaire(stepMilestone) {
+  const modal = document.getElementById("modal-score");
+  const scoreObtained = document.getElementById("score-obtained");
+  const title = document.getElementById("score-eval-title");
+  const message = document.getElementById("score-eval-message");
+  const wrapper = document.getElementById("score-circle-wrapper");
+  
+  // Calculer la note réelle sur 20 dans ce bloc de 20 questions
+  const debutBloc = stepMilestone - 19;
+  const finBloc = stepMilestone;
+  
+  let reponsesCorrectesPremierEssai = 0;
+  for (let id = debutBloc; id <= finBloc; id++) {
+    if (gameState.seriesFirstAttemptResults[id] === true) {
+      reponsesCorrectesPremierEssai++;
+    }
+  }
+  
+  scoreObtained.textContent = reponsesCorrectesPremierEssai;
+  
+  // Évaluation verbale
+  if (reponsesCorrectesPremierEssai >= 18) {
+    title.textContent = "CONDUITE EXCELLENTE !";
+    message.textContent = `Note : ${reponsesCorrectesPremierEssai}/20. Vous êtes un véritable expert de la route béninoise. L'ANaTT vous félicite !`;
+    wrapper.style.borderColor = "var(--green-success)";
+    scoreObtained.style.color = "var(--green-success)";
+  } else if (reponsesCorrectesPremierEssai >= 15) {
+    title.textContent = "ADMIS AU CRITÉRE DE L'EXAMEN";
+    message.textContent = `Note : ${reponsesCorrectesPremierEssai}/20. Très bonne maîtrise globale. Continuez ainsi pour garantir votre examen pratique !`;
+    wrapper.style.borderColor = "var(--neon-blue)";
+    scoreObtained.style.color = "var(--neon-blue)";
+  } else {
+    title.textContent = "ENTRAÎNEMENT INSUFFISANT";
+    message.textContent = `Note : ${reponsesCorrectesPremierEssai}/20. C'est insuffisant pour obtenir le permis de conduire ANaTT (seuil d'admissibilité de 15/20). Entraînez-vous à nouveau sur ce secteur de route !`;
+    wrapper.style.borderColor = "var(--red-danger)";
+    scoreObtained.style.color = "var(--red-danger)";
+  }
+  
+  modal.classList.add("active");
+  
+  document.getElementById("btn-resume-map").onclick = () => {
+    // Passer au secteur suivant
+    const activeSector = SECTEURS.find(s => gameState.unlockedStep >= s.debut && gameState.unlockedStep <= s.fin);
+    if (activeSector) {
+      gameState.activeSectorIndex = SECTEURS.indexOf(activeSector);
+      genererOngletsSecteurs();
+    }
+    
+    // Réinitialiser la série pour le prochain bloc
+    gameState.seriesCorrect = 0;
+    gameState.seriesTotal = 0;
+    gameState.seriesQuestionsPlayed = [];
+    gameState.seriesFirstAttemptResults = {};
+    
+    fermerTousModals();
+    quitterQuiz();
+  };
+}
+
+function afficherModalGameOver() {
+  const modal = document.getElementById("modal-gameover");
+  const percentText = document.getElementById("gameover-progress-percent");
+  
+  // Progression globale en pourcentage
+  const percent = Math.round(((gameState.unlockedStep - 1) / 300) * 100);
+  percentText.textContent = `${percent}%`;
+  
+  modal.classList.add("active");
+  
+  // Recommencer la série en cours
+  document.getElementById("btn-restart-series").onclick = () => {
+    fermerTousModals();
+    
+    // On réinitialise la vie et on relance la série actuelle de 20 questions
+    gameState.lives = 5;
+    
+    const baseStep = Math.floor((gameState.activeStepId - 1) / 20) * 20 + 1;
+    gameState.seriesQuestionsPlayed = [];
+    gameState.seriesCorrect = 0;
+    gameState.seriesTotal = 0;
+    gameState.seriesFirstAttemptResults = {};
+    
+    lancerQuizNiveau(baseStep);
+  };
+}
+
+function afficherModalVictoireFinale() {
+  const modal = document.getElementById("modal-victory");
+  modal.classList.add("active");
+  
+  document.getElementById("btn-restart-game").onclick = () => {
+    reinitialiserJeu();
+  };
+}
+
+function fermerTousModals() {
+  const overlays = document.querySelectorAll(".modal-overlay");
+  overlays.forEach(o => o.classList.remove("active"));
+}
+
+function quitterQuiz() {
+  clearInterval(gameState.timerInterval);
+  document.getElementById("screen-quiz").classList.remove("active");
+  document.getElementById("screen-map").classList.add("active");
+  
+  // Recharger la carte
+  afficherMapSecteur(gameState.activeSectorIndex);
+  mettreAJourTableauDeBord();
+}
+
+// ==========================================
+// MAJ DU TABLEAU DE BORD (HUD / HUD BAR)
+// ==========================================
+function mettreAJourTableauDeBord() {
+  // Rendu des cœurs de vies (barres de carburant)
+  const heartsContainer = document.getElementById("hud-lives");
+  heartsContainer.innerHTML = "";
+  
+  for (let i = 1; i <= 5; i++) {
+    const icon = document.createElement("i");
+    icon.setAttribute("data-lucide", "droplet");
+    
+    if (i <= gameState.lives) {
+      icon.className = "life-heart";
+    } else {
+      icon.className = "life-heart empty";
+    }
+    heartsContainer.appendChild(icon);
+  }
+  
+  // Progression globale
+  document.getElementById("global-score").textContent = `${gameState.completedSteps.length} / 300`;
+  
+  // Stats Odomètre en bas de la carte
+  document.getElementById("stat-completed-count").textContent = gameState.completedSteps.length;
+  
+  // Taux de réussite global
+  let totalEssais = Object.keys(gameState.seriesFirstAttemptResults).length;
+  let totalReussis = Object.values(gameState.seriesFirstAttemptResults).filter(v => v === true).length;
+  let taux = totalEssais > 0 ? Math.round((totalReussis / totalEssais) * 100) : 100;
+  document.getElementById("stat-success-rate").textContent = `${taux}%`;
+  
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ==========================================
+// GESTION DES ACTIONS ET ÉVÉNEMENTS
+// ==========================================
+function initEvenements() {
+  // Clic sur "Valider" de la question
+  document.getElementById("btn-validate").onclick = () => {
+    validerReponseActive();
+  };
+  
+  // Clic sur "Quitter"
+  document.getElementById("btn-quit-quiz").onclick = () => {
+    quitterQuiz();
+  };
+  
+  // Clic sur "Continuer la route"
+  document.getElementById("btn-start-quick").onclick = () => {
+    lancerQuizNiveau(gameState.unlockedStep);
+  };
+}

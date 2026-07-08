@@ -46,10 +46,7 @@ let gameState = {
   seriesCorrect: 0,
   seriesTotal: 0,
   seriesQuestionsPlayed: [], // Historique des étapes jouées dans cette série
-  seriesFirstAttemptResults: {}, // Pour calculer la note finale sur 20 sans triche
-
-  // Lecture vocale automatique des consignes
-  ttsAutoEnabled: true
+  seriesFirstAttemptResults: {} // Pour calculer la note finale sur 20 sans triche
 };
 
 const ttsState = {
@@ -90,7 +87,6 @@ function chargerProgression() {
       const data = JSON.parse(sauvegarde);
       gameState.unlockedStep = Math.max(1, Math.min(data.unlockedStep || 1, TOTAL_STEPS));
       gameState.completedSteps = (data.completedSteps || []).filter(id => id >= 1 && id <= TOTAL_STEPS);
-      gameState.ttsAutoEnabled = data.ttsAutoEnabled !== false;
       
       // Trouver automatiquement l'onglet actif en fonction de l'étape débloquée
       const activeSector = SECTEURS.find(s => gameState.unlockedStep >= s.debut && gameState.unlockedStep <= s.fin);
@@ -107,8 +103,7 @@ function chargerProgression() {
 function sauvegarderProgression() {
   const data = {
     unlockedStep: gameState.unlockedStep,
-    completedSteps: gameState.completedSteps,
-    ttsAutoEnabled: gameState.ttsAutoEnabled
+    completedSteps: gameState.completedSteps
   };
   localStorage.setItem("code_benin_sauvegarde", JSON.stringify(data));
 }
@@ -637,7 +632,6 @@ function construireTexteLecture(questionObj) {
 
 function lireQuestion(questionObj, force = false) {
   if (!ttsState.supported) return;
-  if (!force && !gameState.ttsAutoEnabled) return;
   if (!questionObj) return;
   if (!ttsState.userActivated && !force) return;
 
@@ -721,24 +715,20 @@ function getQuestionActive() {
 }
 
 function mettreAJourControlesLecture() {
-  const toggleBtn = document.getElementById("btn-tts-toggle");
   const replayBtn = document.getElementById("btn-tts-replay");
-  const stopBtn = document.getElementById("btn-tts-stop");
+  const toolsWrapper = document.getElementById("audio-tools");
 
-  if (!toggleBtn || !replayBtn || !stopBtn) return;
+  if (!replayBtn || !toolsWrapper) return;
 
   if (!ttsState.supported) {
-    toggleBtn.textContent = "Lecture indisponible";
-    toggleBtn.disabled = true;
+    toolsWrapper.style.display = "none";
     replayBtn.disabled = true;
-    stopBtn.disabled = true;
     setTtsStatus("Ce navigateur ne supporte pas la synthèse vocale.");
     return;
   }
 
-  toggleBtn.textContent = `Lecture auto: ${gameState.ttsAutoEnabled ? "ON" : "OFF"}`;
+  toolsWrapper.style.display = "flex";
   replayBtn.disabled = false;
-  stopBtn.disabled = false;
   if (!ttsState.userActivated) {
     setTtsStatus("Touchez l'écran puis appuyez sur Relire.");
   }
@@ -1186,23 +1176,7 @@ function initEvenements() {
     lancerQuizNiveau(gameState.unlockedStep);
   };
 
-  document.getElementById("btn-tts-toggle").onclick = () => {
-    gameState.ttsAutoEnabled = !gameState.ttsAutoEnabled;
-    sauvegarderProgression();
-    mettreAJourControlesLecture();
-
-    if (gameState.ttsAutoEnabled) {
-      lireQuestion(getQuestionActive(), true);
-    } else {
-      stopLectureVocale();
-    }
-  };
-
   document.getElementById("btn-tts-replay").onclick = () => {
     lireQuestion(getQuestionActive(), true);
-  };
-
-  document.getElementById("btn-tts-stop").onclick = () => {
-    stopLectureVocale();
   };
 }

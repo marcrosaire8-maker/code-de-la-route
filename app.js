@@ -3,19 +3,37 @@
  * Moteur de jeu autonome 100% Client-side en JavaScript Vanille
  */
 
+const TOTAL_STEPS = (window.BANQUE_QUESTIONS && window.BANQUE_QUESTIONS.length) || 300;
+
+function construireSecteurs(total) {
+  const base = [
+    { id: 1, nom: "Cadre Légal", description: "Permis B, pièces, infractions & sanctions" },
+    { id: 2, nom: "Marquage au Sol", description: "Lignes, zébras, flèches de sélection" },
+    { id: 3, nom: "Signalisation", description: "Panneaux, balises, feux et agents" },
+    { id: 4, nom: "Priorités", description: "Priorités de passage, stop, ronds-points" },
+    { id: 5, nom: "Mécanique", description: "Voyants, 4 temps moteur, fluides, pannes" },
+    { id: 6, nom: "Circuit ANaTT", description: "Manœuvres d'examen, secourisme, P.A.S" }
+  ];
+
+  const block = Math.floor(total / base.length);
+  const remainder = total % base.length;
+  let start = 1;
+
+  return base.map((secteur, index) => {
+    const size = block + (index < remainder ? 1 : 0);
+    const end = start + size - 1;
+    const built = { ...secteur, debut: start, fin: end };
+    start = end + 1;
+    return built;
+  });
+}
+
 // Configuration des Secteurs Académiques de l'ANaTT
-const SECTEURS = [
-  { id: 1, nom: "Cadre Légal", debut: 1, fin: 30, description: "Permis B, pièces, infractions & sanctions" },
-  { id: 2, nom: "Marquage au Sol", debut: 31, fin: 80, description: "Lignes, zébras, flèches de sélection" },
-  { id: 3, nom: "Signalisation", debut: 81, fin: 150, description: "Panneaux, balises, feux et agents" },
-  { id: 4, nom: "Priorités", debut: 151, fin: 220, description: "Priorités de passage, stop, ronds-points" },
-  { id: 5, nom: "Mécanique", debut: 221, fin: 260, description: "Voyants, 4 temps moteur, fluides, pannes" },
-  { id: 6, nom: "Circuit ANaTT", debut: 261, fin: 300, description: "Manœuvres d'examen, secourisme, P.A.S" }
-];
+const SECTEURS = construireSecteurs(TOTAL_STEPS);
 
 // État global de l'application
 let gameState = {
-  unlockedStep: 1,        // Étape maximale débloquée globalement (1 à 300)
+  unlockedStep: 1,        // Étape maximale débloquée globalement (1 à TOTAL_STEPS)
   activeStepId: null,      // Étape en cours de jeu
   activeSectorIndex: 0,    // Secteur actuellement affiché sur la Map
   lives: 5,               // 5 barres de carburant / vies
@@ -28,18 +46,35 @@ let gameState = {
   seriesCorrect: 0,
   seriesTotal: 0,
   seriesQuestionsPlayed: [], // Historique des étapes jouées dans cette série
-  seriesFirstAttemptResults: {} // Pour calculer la note finale sur 20 sans triche
+  seriesFirstAttemptResults: {}, // Pour calculer la note finale sur 20 sans triche
+
+  // Lecture vocale automatique des consignes
+  ttsAutoEnabled: true
 };
+
+const ttsState = {
+  supported: typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window,
+  voices: []
+  ,
+  userActivated: false
+};
+
+function setTtsStatus(message) {
+  const el = document.getElementById("tts-status");
+  if (el) el.textContent = message;
+}
 
 // ==========================================
 // INITIALISATION DE L'APPLICATION
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
   chargerProgression();
+  initialiserSyntheseVocale();
   genererOngletsSecteurs();
   initEvenements();
   afficherMapSecteur(gameState.activeSectorIndex);
   mettreAJourTableauDeBord();
+  mettreAJourControlesLecture();
   
   // Initialisation des icônes Lucide
   if (window.lucide) {
@@ -53,8 +88,9 @@ function chargerProgression() {
   if (sauvegarde) {
     try {
       const data = JSON.parse(sauvegarde);
-      gameState.unlockedStep = data.unlockedStep || 1;
-      gameState.completedSteps = data.completedSteps || [];
+      gameState.unlockedStep = Math.max(1, Math.min(data.unlockedStep || 1, TOTAL_STEPS));
+      gameState.completedSteps = (data.completedSteps || []).filter(id => id >= 1 && id <= TOTAL_STEPS);
+      gameState.ttsAutoEnabled = data.ttsAutoEnabled !== false;
       
       // Trouver automatiquement l'onglet actif en fonction de l'étape débloquée
       const activeSector = SECTEURS.find(s => gameState.unlockedStep >= s.debut && gameState.unlockedStep <= s.fin);
@@ -71,7 +107,8 @@ function chargerProgression() {
 function sauvegarderProgression() {
   const data = {
     unlockedStep: gameState.unlockedStep,
-    completedSteps: gameState.completedSteps
+    completedSteps: gameState.completedSteps,
+    ttsAutoEnabled: gameState.ttsAutoEnabled
   };
   localStorage.setItem("code_benin_sauvegarde", JSON.stringify(data));
 }
@@ -395,13 +432,19 @@ function afficherMapSecteur(sectorIndex) {
   const hauteurPiste = (totalEtapesSecteur * hauteurEtape) + 150;
   trackContainer.style.minHeight = `${hauteurPiste}px`;
   
-  let topPosition = 80;
+  // Limiter le rendu DOM pour garder une interface fluide même avec 12 000 questions.
+  const MAX_NOEUDS_RENDUS = 220;
+  const demiFenetre = Math.floor(MAX_NOEUDS_RENDUS / 2);
+  const focusStep = Math.min(Math.max(gameState.unlockedStep, secteur.debut), secteur.fin);
+  const renderStart = Math.max(secteur.debut, focusStep - demiFenetre);
+  const renderEnd = Math.min(secteur.fin, focusStep + demiFenetre);
   
   // Générer les étapes de ce secteur
-  for (let stepId = secteur.debut; stepId <= secteur.fin; stepId++) {
+  for (let stepId = renderStart; stepId <= renderEnd; stepId++) {
     const node = document.createElement("div");
     node.className = "map-node";
     node.setAttribute("data-step", stepId);
+    const topPosition = 80 + ((stepId - secteur.debut) * hauteurEtape);
     node.style.top = `${topPosition}px`;
     
     // Évaluation de l'état du niveau
@@ -431,7 +474,6 @@ function afficherMapSecteur(sectorIndex) {
       trackContainer.appendChild(banner);
     }
     
-    topPosition += hauteurEtape;
   }
   
   // Mettre à jour l'odomètre en bas
@@ -485,13 +527,14 @@ function lancerQuizNiveau(stepId) {
   }
   
   // Remplir les données de l'interface
-  document.getElementById("quiz-step-indicator").textContent = `Étape ${stepId} sur 300`;
+  document.getElementById("quiz-step-indicator").textContent = `Étape ${stepId} sur ${TOTAL_STEPS}`;
   document.getElementById("question-theme").textContent = questionObj.theme;
   document.getElementById("question-text").textContent = questionObj.question;
   
-  // Générer le visuel de la question en SVG
-  const vectorContainer = document.getElementById("quiz-vector-fallback");
-  vectorContainer.innerHTML = genererSVGDefinition(stepId, questionObj.theme, questionObj.question);
+  // Toujours afficher un visuel pour chaque consigne:
+  // 1) image locale si elle existe
+  // 2) sinon illustration SVG générée automatiquement (fallback garanti)
+  afficherIllustrationConsigne(questionObj);
   
   // Remplir les options de réponse
   const optionsContainer = document.getElementById("options-container");
@@ -524,7 +567,215 @@ function lancerQuizNiveau(stepId) {
   
   // Lancer le chronomètre
   demarrerChrono();
+  lireQuestionSiActive(questionObj);
   mettreAJourTableauDeBord();
+}
+
+function initialiserSyntheseVocale() {
+  if (!ttsState.supported) return;
+
+  const chargerVoix = () => {
+    ttsState.voices = window.speechSynthesis.getVoices();
+  };
+
+  chargerVoix();
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = chargerVoix;
+  }
+
+  // Certains navigateurs mobiles exigent une interaction explicite
+  // avant d'autoriser la synthèse vocale.
+  const activerTTS = () => {
+    if (ttsState.userActivated) return;
+    ttsState.userActivated = true;
+    try {
+      const unlock = new SpeechSynthesisUtterance(" ");
+      unlock.volume = 0;
+      window.speechSynthesis.speak(unlock);
+      window.speechSynthesis.cancel();
+    } catch (e) {
+      console.warn("Activation TTS différée", e);
+    }
+  };
+
+  document.addEventListener("click", activerTTS, { once: true, capture: true });
+  document.addEventListener("touchstart", activerTTS, { once: true, capture: true });
+  document.addEventListener("keydown", activerTTS, { once: true, capture: true });
+  setTtsStatus("Touchez l'écran puis appuyez sur Relire.");
+}
+
+function stopLectureVocale() {
+  if (!ttsState.supported) return;
+  window.speechSynthesis.cancel();
+  setTtsStatus("Lecture arrêtée.");
+}
+
+function getVoixFrancaise() {
+  if (!ttsState.voices.length) return null;
+  const frVoices = ttsState.voices.filter(v => v.lang && v.lang.toLowerCase().startsWith("fr"));
+  if (!frVoices.length) return ttsState.voices[0];
+
+  // Préférence voix masculine si disponible sur l'appareil/navigateur.
+  const maleHints = ["male", "man", "homme", "masculin", "thomas", "paul", "daniel", "georges", "nicolas", "yann"];
+  const maleFrench = frVoices.find(v => {
+    const name = (v.name || "").toLowerCase();
+    return maleHints.some(h => name.includes(h));
+  });
+
+  return maleFrench || frVoices[0];
+}
+
+function construireTexteLecture(questionObj) {
+  const optionsSansPrefixe = (questionObj.options || []).map((opt, idx) => {
+    const propre = opt.replace(/^[A-D]\)\s*/i, "");
+    const lettre = ["A", "B", "C", "D"][idx] || `${idx + 1}`;
+    return `Option ${lettre}. ${propre}.`;
+  });
+
+  return `Question ${questionObj.id}. ${questionObj.question}. ${optionsSansPrefixe.join(" ")}`;
+}
+
+function lireQuestion(questionObj, force = false) {
+  if (!ttsState.supported) return;
+  if (!force && !gameState.ttsAutoEnabled) return;
+  if (!questionObj) return;
+  if (!ttsState.userActivated && !force) return;
+
+  stopLectureVocale();
+  // Texte borné pour éviter certains blocages moteurs TTS sur mobiles.
+  const texte = construireTexteLecture(questionObj).slice(0, 500);
+  const utterance = new SpeechSynthesisUtterance(texte);
+  utterance.lang = "fr-FR";
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  const voice = getVoixFrancaise();
+  if (voice) utterance.voice = voice;
+
+  utterance.onstart = () => setTtsStatus("Lecture en cours...");
+  utterance.onend = () => setTtsStatus("Lecture terminée.");
+  utterance.onerror = (event) => {
+    setTtsStatus(`Erreur lecture: ${event.error || "inconnue"}.`);
+  };
+
+  try {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+    // Différé court: plus fiable sur plusieurs navigateurs mobiles.
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 60);
+  } catch (e) {
+    setTtsStatus("Lecture non autorisée par le navigateur.");
+    console.warn("Lecture vocale indisponible", e);
+  }
+}
+
+function lireQuestionSiActive(questionObj) {
+  if (!questionObj) return;
+  lireQuestion(questionObj);
+}
+
+function lireMessageErreurVocal(raison = null) {
+  if (!ttsState.supported || !ttsState.userActivated) return;
+
+  const messages = [
+    "Réponse incorrecte. Ce n'est pas grave, on continue.",
+    "Incorrect. Relis la règle puis réessaie.",
+    "Mauvaise réponse. Garde ton calme et poursuis l'entraînement.",
+    "Erreur détectée. Continue, tu vas progresser."
+  ];
+
+  const prefix = raison ? `${raison}. ` : "";
+  const message = `${prefix}${pick(Date.now(), messages)}`;
+
+  stopLectureVocale();
+  const utterance = new SpeechSynthesisUtterance(message.slice(0, 280));
+  utterance.lang = "fr-FR";
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  const voice = getVoixFrancaise();
+  if (voice) utterance.voice = voice;
+
+  utterance.onstart = () => setTtsStatus("Message vocal d'erreur...");
+  utterance.onend = () => setTtsStatus("Message vocal terminé.");
+  utterance.onerror = (event) => {
+    setTtsStatus(`Erreur lecture: ${event.error || "inconnue"}.`);
+  };
+
+  try {
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 60);
+  } catch (e) {
+    console.warn("Lecture vocale d'erreur indisponible", e);
+  }
+}
+
+function getQuestionActive() {
+  return window.BANQUE_QUESTIONS.find(q => q.id === gameState.activeStepId);
+}
+
+function mettreAJourControlesLecture() {
+  const toggleBtn = document.getElementById("btn-tts-toggle");
+  const replayBtn = document.getElementById("btn-tts-replay");
+  const stopBtn = document.getElementById("btn-tts-stop");
+
+  if (!toggleBtn || !replayBtn || !stopBtn) return;
+
+  if (!ttsState.supported) {
+    toggleBtn.textContent = "Lecture indisponible";
+    toggleBtn.disabled = true;
+    replayBtn.disabled = true;
+    stopBtn.disabled = true;
+    setTtsStatus("Ce navigateur ne supporte pas la synthèse vocale.");
+    return;
+  }
+
+  toggleBtn.textContent = `Lecture auto: ${gameState.ttsAutoEnabled ? "ON" : "OFF"}`;
+  replayBtn.disabled = false;
+  stopBtn.disabled = false;
+  if (!ttsState.userActivated) {
+    setTtsStatus("Touchez l'écran puis appuyez sur Relire.");
+  }
+}
+
+function afficherIllustrationConsigne(questionObj) {
+  const imageEl = document.getElementById("quiz-img");
+  const vectorContainer = document.getElementById("quiz-vector-fallback");
+
+  const svgFallback = () => {
+    imageEl.style.display = "none";
+    imageEl.removeAttribute("src");
+    vectorContainer.style.display = "flex";
+    vectorContainer.innerHTML = genererSVGDefinition(
+      questionObj.id,
+      questionObj.theme,
+      questionObj.question
+    );
+  };
+
+  // Afficher immédiatement une illustration (SVG) pour garantir un visuel,
+  // puis remplacer par l'image uniquement si elle charge réellement.
+  svgFallback();
+
+  if (!questionObj.image) return;
+
+  imageEl.onload = () => {
+    vectorContainer.style.display = "none";
+    imageEl.style.display = "block";
+  };
+  imageEl.onerror = () => {
+    // On garde le SVG déjà affiché
+  };
+
+  // Force la revalidation du chargement (évite certains caches/états bizarres)
+  imageEl.src = "";
+  imageEl.src = questionObj.image;
 }
 
 function selectionnerOption(lettre, elementOption) {
@@ -588,6 +839,7 @@ function gererPanneDeTemps() {
 function validerReponseActive() {
   if (!gameState.selectedOption) return;
   clearInterval(gameState.timerInterval);
+  stopLectureVocale();
   
   const questionObj = window.BANQUE_QUESTIONS.find(q => q.id === gameState.activeStepId);
   const reponseCorrecte = questionObj.reponsesCorrectes[0]; // Gère le choix simple d'abord
@@ -620,7 +872,7 @@ function validerReponseActive() {
       gameState.completedSteps.push(gameState.activeStepId);
     }
     
-    if (gameState.activeStepId === gameState.unlockedStep && gameState.unlockedStep < 300) {
+    if (gameState.activeStepId === gameState.unlockedStep && gameState.unlockedStep < TOTAL_STEPS) {
       gameState.unlockedStep = gameState.activeStepId + 1;
     }
     
@@ -657,6 +909,7 @@ function validerReponseActive() {
     // Soustraire une vie
     gameState.lives--;
     mettreAJourTableauDeBord();
+    lireMessageErreurVocal();
     
     // Vérifier si Game Over (Panne de moteur)
     setTimeout(() => {
@@ -672,6 +925,7 @@ function validerReponseActive() {
 // Pénalisation d'erreur suite à une panne de temps
 function penaliserErreur(raisonExplication) {
   clearInterval(gameState.timerInterval);
+  stopLectureVocale();
   
   const questionObj = window.BANQUE_QUESTIONS.find(q => q.id === gameState.activeStepId);
   const reponseCorrecte = questionObj.reponsesCorrectes[0];
@@ -688,6 +942,7 @@ function penaliserErreur(raisonExplication) {
   
   gameState.lives--;
   mettreAJourTableauDeBord();
+  lireMessageErreurVocal("Temps écoulé");
   
   setTimeout(() => {
     if (gameState.lives <= 0) {
@@ -757,8 +1012,8 @@ function progresserApresExplication() {
     // Afficher l'écran de note intermédiaire sur 20
     afficherModalNoteIntermediaire(stepFini);
   } else {
-    // Si c'est l'étape 300 et qu'il l'a réussie, victoire totale !
-    if (stepFini === 300 && gameState.completedSteps.includes(300)) {
+    // Si c'est la dernière étape et qu'il l'a réussie, victoire totale !
+    if (stepFini === TOTAL_STEPS && gameState.completedSteps.includes(TOTAL_STEPS)) {
       afficherModalVictoireFinale();
     } else {
       quitterQuiz();
@@ -830,7 +1085,7 @@ function afficherModalGameOver() {
   const percentText = document.getElementById("gameover-progress-percent");
   
   // Progression globale en pourcentage
-  const percent = Math.round(((gameState.unlockedStep - 1) / 300) * 100);
+  const percent = Math.round(((gameState.unlockedStep - 1) / TOTAL_STEPS) * 100);
   percentText.textContent = `${percent}%`;
   
   modal.classList.add("active");
@@ -868,6 +1123,7 @@ function fermerTousModals() {
 
 function quitterQuiz() {
   clearInterval(gameState.timerInterval);
+  stopLectureVocale();
   document.getElementById("screen-quiz").classList.remove("active");
   document.getElementById("screen-map").classList.add("active");
   
@@ -897,7 +1153,7 @@ function mettreAJourTableauDeBord() {
   }
   
   // Progression globale
-  document.getElementById("global-score").textContent = `${gameState.completedSteps.length} / 300`;
+  document.getElementById("global-score").textContent = `${gameState.completedSteps.length} / ${TOTAL_STEPS}`;
   
   // Stats Odomètre en bas de la carte
   document.getElementById("stat-completed-count").textContent = gameState.completedSteps.length;
@@ -928,5 +1184,25 @@ function initEvenements() {
   // Clic sur "Continuer la route"
   document.getElementById("btn-start-quick").onclick = () => {
     lancerQuizNiveau(gameState.unlockedStep);
+  };
+
+  document.getElementById("btn-tts-toggle").onclick = () => {
+    gameState.ttsAutoEnabled = !gameState.ttsAutoEnabled;
+    sauvegarderProgression();
+    mettreAJourControlesLecture();
+
+    if (gameState.ttsAutoEnabled) {
+      lireQuestion(getQuestionActive(), true);
+    } else {
+      stopLectureVocale();
+    }
+  };
+
+  document.getElementById("btn-tts-replay").onclick = () => {
+    lireQuestion(getQuestionActive(), true);
+  };
+
+  document.getElementById("btn-tts-stop").onclick = () => {
+    stopLectureVocale();
   };
 }

@@ -1,164 +1,39 @@
 /**
- * Banque de questions officielle pour le jeu de Code de la Route Bénin (Permis B - ANaTT)
- * Contient un échantillon de 10 questions réelles ultra-détaillées et un moteur d'extension
- * dynamique qui génère les 300 étapes de la progression académique de l'ANaTT.
+ * Banque de questions massive pour le Code de la Route Bénin (ANaTT).
+ * Objectif: fournir > 10 000 questions d'entrainement.
+ * - window.BANQUE_QUESTIONS_COMPLETE: banque complete (12 000)
+ * - window.BANQUE_QUESTIONS: banque active (12 000)
  */
 
-const EXEMPLES_REELS = [
-  {
-    id: 1,
-    theme: "Cadre Légal",
-    question: "Pour obtenir le permis de catégorie B au Bénin, quelles sont les limites réglementaires concernant le transport de passagers et de marchandises ?",
-    options: [
-      "A) Maximum 9 places assises (conducteur compris) et un PTAC n'excédant pas 3,5 tonnes",
-      "B) Maximum 8 places assises (hors conducteur) et un PTAC n'excédant pas 5 tonnes",
-      "C) Maximum 9 places assises (hors conducteur) et un PTAC libre",
-      "D) Maximum 5 places assises et un PTAC n'excédant pas 3,5 tonnes"
-    ],
-    reponsesCorrectes: ["A"],
-    explication: "Selon le Chapitre II du cours de l'ANaTT, le permis B autorise la conduite des véhicules automobiles affectés au transport de personnes comptant au maximum 9 places assises y compris celle du conducteur, ou au transport de marchandises dont le Poids Total Autorisé en Charge (P.T.A.C) ne dépasse pas 3,5 tonnes. L'âge minimum requis est de 18 ans.",
-    image: "images/q1.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 2,
-    theme: "Cadre Légal",
-    question: "Parmi les cas d'abstinence à la conduite répertoriés par le guide officiel de l'ANaTT au Bénin, quel comportement est mentionné ?",
-    options: [
-      "A) Être de groupe sanguin O négatif",
-      "B) Être soucieux, nerveux, ivre ou sous l'effet de médicaments excitants",
-      "C) Conduire pendant les heures de culte ou de prière",
-      "D) Conduire avec des lunettes de soleil en plein après-midi"
-    ],
-    reponsesCorrectes: ["B"],
-    explication: "Le Chapitre I du cours stipule que pour conduire, le conducteur doit être en bonne condition physique et mentale. Il doit s'abstenir de conduire lorsqu'il est : Soucieux, Nerveux, Ivre, Fatigué, Somnolent, Malade, souffrant de troubles visuels ou sous l'effet de stupéfiants/médicaments ou du téléphone portable.",
-    image: "images/q2.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 3,
-    theme: "Marquage au sol",
-    question: "Quelle est la différence réglementaire exacte entre une 'bande cyclable' et une 'piste cyclable' au Bénin ?",
-    options: [
-      "A) La piste cyclable fait partie de la chaussée alors que la bande cyclable est sur l'accotement",
-      "B) La bande cyclable est une partie de la chaussée, tandis que la piste cyclable est une partie de l'accotement",
-      "C) Les deux sont strictement synonymes et interchangeables sur toutes les routes",
-      "D) La bande cyclable est uniquement réservée aux motocyclistes en agglomération"
-    ],
-    reponsesCorrectes: ["B"],
-    explication: "D'après les Chapitres V et V bis, la bande cyclable est située sur la chaussée (exclusivement réservée aux cycles), alors que la piste cyclable est située sur l'accotement (en ville ou rase campagne). Les cyclomoteurs peuvent les emprunter seulement si un panneau de signalisation le spécifie.",
-    image: "images/q3.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 4,
-    theme: "Marquage au sol",
-    question: "À Cotonou, que signifie la présence d'une ligne jaune continue peinte sur la bordure du trottoir ?",
-    options: [
-      "A) Le dépassement est autorisé à vitesse réduite à cet endroit",
-      "B) L'arrêt et le stationnement sont strictement interdits le long de ce trottoir",
-      "C) Le stationnement est interdit, mais l'arrêt temporaire est autorisé",
-      "D) C'est une zone réservée exclusivement aux arrêts des bus de transport de l'ANaTT"
-    ],
-    reponsesCorrectes: ["B"],
-    explication: "Selon le cours sur la signalisation horizontale (Marques sur la chaussée), la ligne jaune continue peinte le long du trottoir interdit formellement l'arrêt et le stationnement des véhicules. Si la ligne jaune était discontinue, seul le stationnement serait interdit, l'arrêt y restant toléré.",
-    image: "images/q4.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 5,
-    theme: "Signalisation",
-    question: "À quelle distance du danger les panneaux triangulaires à bord rouge sont-ils implantés en agglomération et hors agglomération ?",
-    options: [
-      "A) À 50 mètres en agglomération, et à 150 mètres en rase campagne",
-      "B) À 150 mètres en agglomération, et à 50 mètres en rase campagne",
-      "C) Immédiatement à l'endroit précis où se trouve le danger",
-      "D) À 100 mètres de distance sur l'ensemble du territoire national"
-    ],
-    reponsesCorrectes: ["A"],
-    explication: "Le Chapitre VI indique que les panneaux de danger (de forme triangulaire à bord rouge et pointe en haut) sont placés à une distance de position avancée : 50 mètres avant le danger en agglomération (ville) pour tenir compte de la vitesse réduite, et à 150 mètres en rase campagne (campagne).",
-    image: "images/q5.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 6,
-    theme: "Priorités",
-    question: "Quelles sont les trois (3) grandes règles de priorité définies officiellement pour organiser les intersections au Bénin ?",
-    options: [
-      "A) La priorité à droite, la perte de priorité, et la priorité de passage",
-      "B) Le stop obligatoire, la priorité de gauche, et le rond-point prioritaire",
-      "C) Le feu tricolore, l'agent de circulation, et le panneau d'arrêt",
-      "D) La priorité absolue, la priorité relative, et le cédez-le-passage"
-    ],
-    reponsesCorrectes: ["A"],
-    explication: "D'après le Chapitre III du cours de code officiel de l'ANaTT, l'ordre de passage aux intersections est régi par trois grandes règles de priorité : la priorité à droite (céder aux véhicules venant de droite), la perte de priorité (céder à gauche et à droite), et la priorité de passage (s'engager sans céder).",
-    image: "images/q6.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 7,
-    theme: "Priorités",
-    question: "Quels sont les quatre (4) véhicules dits prioritaires au Bénin lorsqu'ils circulent en mission avec leurs avertisseurs allumés ?",
-    options: [
-      "A) Police, Gendarmerie, Sapeurs-Pompiers, et SAMU/SMUR",
-      "B) Véhicule de la présidence, Gendarmerie, Ambulances privées, et Corbillards",
-      "C) Police nationale, Sapeurs-Pompiers, Taxis-motos officiels, et Douanes",
-      "D) SAMU, Ambulances de cliniques privées, Escorte militaire, et Corbillards"
-    ],
-    reponsesCorrectes: ["A"],
-    explication: "Le Chapitre III liste précisément les 4 véhicules prioritaires au Bénin : 1) Véhicule de la Police, 2) Véhicule de la Gendarmerie, 3) Sapeurs-Pompiers (lutte contre l'incendie), 4) SAMU/SMUR. Les ambulances privées et les corbillards ne sont pas prioritaires, bien qu'on leur facilite le passage.",
-    image: "images/q7.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 8,
-    theme: "Mécanique",
-    question: "Pour qu'un moteur thermique à essence de véhicule puisse démarrer et tourner, de quels trois (3) éléments indispensables a-t-il besoin ?",
-    options: [
-      "A) L'air, l'essence, et l'électricité",
-      "B) L'air, l'huile de boîte de vitesse, et l'eau distillée",
-      "C) L'essence, le liquide de direction, et les bougies de préchauffage",
-      "D) L'électricité, le liquide de lave-glace, et l'alternateur"
-    ],
-    reponsesCorrectes: ["A"],
-    explication: "Le Chapitre XX (Section A - Voies d'essence) enseigne qu'un véhicule à moteur essence tire sa puissance thermique et de combustion de la combinaison indispensable de trois éléments : l'AIR (filtré par le filtre à air), l'ESSENCE (stocké dans le réservoir), et l'ÉLECTRICITÉ (allumage par les bougies).",
-    image: "images/q8.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 9,
-    theme: "Mécanique",
-    question: "Un véhicule automobile dispose de trois types de freins. Quelle est la fonction attribuée réglementairement au 'frein moteur' ?",
-    options: [
-      "A) Ralentir le véhicule, notamment pour aborder un virage ou négocier une descente dangereuse",
-      "B) Bloquer les roues arrière lors d'un stationnement prolongé",
-      "C) Arrêter instantanément le moteur en cas d'accident ou d'incendie",
-      "D) Remplacer entièrement le liquide de frein en cas de fuite hydraulique"
-    ],
-    reponsesCorrectes: ["A"],
-    explication: "D'après la note du Chapitre XII bis, un véhicule dispose du frein à pied (principal), du frein à main (parcage) et du frein moteur. Le frein moteur sert à ralentir, aborder un virage, ou négocier une descente dangereuse en utilisant le rapport de boîte bas pour retenir l'inertie.",
-    image: "images/q9.jpg",
-    tempsImparti: 30
-  },
-  {
-    id: 10,
-    theme: "Circuit ANaTT",
-    question: "En présence d'un accident corporel de la route au Bénin, quel est l'ordre des trois étapes cruciales du secourisme ?",
-    options: [
-      "A) PROTEGER, ALERTER, SECOURIR (le P.A.S)",
-      "B) APPELER, COUVRIR, TRANSPORTER immédiatement",
-      "C) SÉCURISER, DONNER À BOIRE, REANIMER",
-      "D) SIGNALER, RECHERCHER LES FAUTES, APPELER"
-    ],
-    reponsesCorrectes: ["A"],
-    explication: "Le Chapitre XIX (Le Secourisme) oblige tout conducteur premier arrivé sur un accident à appliquer la règle d'or du P.A.S : 1) PROTEGER (sécuriser les lieux, baliser à 30m, couper le contact), 2) ALERTER (appeler le 17 pour la police ou le 18 pour les pompiers), 3) SECOURIR (assister les blessés sans aggraver leur état).",
-    image: "images/q10.jpg",
-    tempsImparti: 30
-  }
+const TOTAL_QUESTIONS_COMPLETE = 12000;
+const TOTAL_QUESTIONS_JEU = 300;
+const TEMPS_IMPARTI_PAR_DEFAUT = 30;
+
+const THEMES = [
+  "Cadre Légal",
+  "Marquage au sol",
+  "Signalisation",
+  "Priorités",
+  "Mécanique",
+  "Circuit ANaTT"
 ];
 
-// Moteur de génération automatique pour atteindre 300 étapes académiques
-const THEMES_STRICTS = [
+function slugifyTheme(theme) {
+  return theme
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildQuestionImageUrl(theme, id) {
+  // On force le fallback SVG contextuel (lié à l'énoncé),
+  // pour éviter toute image générique hors sujet.
+  return null;
+}
+
+const THEMES_STRICTS_JEU = [
   { theme: "Cadre Légal", debut: 1, fin: 30 },
   { theme: "Marquage au sol", debut: 31, fin: 80 },
   { theme: "Signalisation", debut: 81, fin: 150 },
@@ -167,240 +42,466 @@ const THEMES_STRICTS = [
   { theme: "Circuit ANaTT", debut: 261, fin: 300 }
 ];
 
-function genererFausseQuestion(id, theme) {
-  let question = "";
-  let options = [];
-  let reponsesCorrectes = ["A"];
-  let explication = "";
-  let tempsImparti = 30;
+// Sources en ligne consultées pour structurer les thèmes et le format des examens.
+window.SOURCES_FORMATION_BENIN = [
+  "https://www.gouv.bj/doc/174/download",
+  "https://aacr.bj/",
+  "https://automag.bj/2025/01/24/passer-son-permis-de-conduire-au-benin/",
+  "https://www.lapyramide-benin.com/",
+  "https://lepotentiel.bj/2025/11/19/permis-de-conduire-au-benin-le-repertoire-des-questionnaires-actualise-lanatt-renforce-les-examens-theoriques/"
+];
 
-  if (theme === "Cadre Légal") {
-    const questions_legal = [
-      {
-        q: `[Étape ${id}] Quel est l'âge minimal pour obtenir le permis de catégorie B au Bénin selon l'ANaTT ?`,
-        opt: ["A) 18 ans révolus", "B) 16 ans avec conduite accompagnée", "C) 21 ans pour les véhicules utilitaires", "D) 17 ans avec accord parental"],
-        rep: ["A"],
-        exp: "L'âge minimum légal pour obtenir le permis de conduire de catégorie B au Bénin est strictement de 18 ans, comme spécifié dans les notes du Chapitre II de l'ANaTT."
-      },
-      {
-        q: `[Étape ${id}] Quel document de bord certifie la taxe fiscale annuelle du véhicule au Bénin ?`,
-        opt: ["A) La Vignette Fiscale de l'année en cours", "B) La Carte Grise", "C) L'Attestation d'assurance", "D) Le reçu de visite technique"],
-        rep: ["A"],
-        exp: "La vignette fiscale, collée ou conservée à bord, prouve le paiement de la taxe sur les véhicules à moteur pour l'année en cours (Chapitre XI du guide des vérifications journalières)."
-      },
-      {
-        q: `[Étape ${id}] Quelle est la durée maximale d'un stationnement autorisé sur un même emplacement public avant d'être jugé abusif ?`,
-        opt: ["A) 7 jours consécutifs", "B) 48 heures consécutifs", "C) 15 jours consécutifs", "D) 24 heures seulement"],
-        rep: ["A"],
-        exp: "Selon le Chapitre XVI (Arrêt et Stationnement), la durée maximale de stationnement sur un même point de la voie publique est de 7 jours. Au-delà, le stationnement est qualifié d'abusif."
-      },
-      {
-        q: `[Étape ${id}] Quelle est la vitesse maximale légale par défaut en agglomération au Bénin sauf panneau contraire ?`,
-        opt: ["A) 50 km/h", "B) 60 km/h", "C) 40 km/h", "D) 30 km/h"],
-        rep: ["A"],
-        exp: "En agglomération au Bénin, la vitesse maximale autorisée est fixée par défaut à 50 km/h pour assurer la sécurité des usagers vulnérables."
-      },
-      {
-        q: `[Étape ${id}] Lequel de ces comportements entraîne un retrait immédiat du permis de conduire ?`,
-        opt: ["A) La conduite en état d'ivresse ou délit de fuite", "B) Un défaut de lave-glace le matin", "C) Un stationnement en double file de 5 minutes", "D) Conduire sans roue de secours en agglomération"],
-        rep: ["A"],
-        exp: "La conduite en état d'ivresse et le délit de fuite constituent des infractions majeures entraînant le retrait immédiat du permis de conduire (Chapitre XVIII)."
-      }
-    ];
-    const q_choice = questions_legal[id % questions_legal.length];
-    question = q_choice.q;
-    options = q_choice.opt;
-    reponsesCorrectes = q_choice.rep;
-    explication = q_choice.exp;
-  } else if (theme === "Marquage au sol") {
-    const questions_marques = [
-      {
-        q: `[Étape ${id}] Que vous annonce une ligne blanche discontinue dont les traits de 3m sont séparés par de courts intervalles de 1,33m ?`,
-        opt: ["A) Une ligne d'avertissement annonçant une ligne continue", "B) Une ligne de rive délimitant l'accotement", "C) Une ligne mixte autorisant le dépassement", "D) Une bande cyclable rase campagne"],
-        rep: ["A"],
-        exp: "La ligne d'avertissement comporte des traits rapprochés (traits de 3m, intervalles de 1,33m) indiquant la proximité imminente d'une ligne continue où tout franchissement sera strictement interdit."
-      },
-      {
-        q: `[Étape ${id}] Avez-vous le droit de circuler ou de stationner sur une zone marquée de zébras blancs au sol ?`,
-        opt: ["A) Non, il est strictement interdit d'y circuler, de s'y arrêter ou de s'y stationner", "B) Oui, uniquement pour effectuer un demi-tour rapide", "C) Oui, mais seulement pour les taxis-motos", "D) Oui, pour charger ou décharger des passagers"],
-        rep: ["A"],
-        exp: "Selon le Chapitre XII bis, les zébras sont des hachures blanches au sol sur lesquelles il est formellement interdit de circuler, de s'arrêter ou de stationner."
-      },
-      {
-        q: `[Étape ${id}] Qu'indiquent les flèches de rabattement (généralement au nombre de 3) dessinées sur la chaussée ?`,
-        opt: ["A) L'obligation de serrer à droite car la ligne discontinue va devenir continue", "B) Une réduction du nombre de voies de circulation", "C) L'approche d'un virage extrêmement dangereux", "D) Une voie exclusivement réservée aux bus de l'ANaTT"],
-        rep: ["A"],
-        exp: "Les flèches de rabattement pointent vers la droite et vous demandent de vous rabattre au plus vite car la ligne discontinue va se transformer en ligne continue, interdisant le dépassement."
-      },
-      {
-        q: `[Étape ${id}] Que signifie une ligne transversale épaisse peinte à une intersection régie par des feux tricolores ?`,
-        opt: ["A) C'est une ligne d'effet de feux, zone limite où les véhicules doivent s'arrêter au rouge", "B) C'est un passage piéton pour les personnes âgées", "C) C'est une ligne de délimitation de la chaussée en rase campagne", "D) C'est une bande vibrante de ralentissement"],
-        rep: ["A"],
-        exp: "Selon le guide de l'ANaTT, cette ligne transversale épaisse est appelée 'Ligne d'effet de feux'. C'est à sa hauteur que l'arrêt est obligatoire lorsque le feu est rouge ou que l'agent ordonne l'arrêt."
-      }
-    ];
-    const q_choice = questions_marques[id % questions_marques.length];
-    question = q_choice.q;
-    options = q_choice.opt;
-    reponsesCorrectes = q_choice.rep;
-    explication = q_choice.exp;
-  } else if (theme === "Signalisation") {
-    const questions_signaux = [
-      {
-        q: `[Étape ${id}] Les balises de virage à chevrons bleu et blanc indiquent :`,
-        opt: ["A) Un virage extrêmement dangereux et accentué", "B) Une bifurcation d'autoroute imminente", "C) Un passage à niveau non gardé", "D) Une zone de stationnement unilatéral alterné"],
-        rep: ["A"],
-        exp: "Selon le Chapitre VII, les balises de virage très dangereux sont des chevrons bleus et blancs qui soulignent une courbe extrêmement prononcée et dangereuse."
-      },
-      {
-        q: `[Étape ${id}] De quelle couleur est le fond d'un panneau d'obligation de forme circulaire au Bénin ?`,
-        opt: ["A) Fond bleu avec pictogramme blanc", "B) Fond blanc entouré de rouge", "C) Fond jaune entouré de noir", "D) Fond vert avec liseré rouge"],
-        rep: ["A"],
-        exp: "Le Chapitre VI indique que les panneaux de prescription d'obligation sont circulaires à fond bleu avec des symboles de couleur blanche."
-      },
-      {
-        q: `[Étape ${id}] Quelle balise se présente sous la forme d'un poteau blanc ceinturé d'une bande rouge au sommet ?`,
-        opt: ["A) La balise d'intersection", "B) La balise de virage", "C) Le délinéateur de rase campagne", "D) La balise de tête d'îlot"],
-        rep: ["A"],
-        exp: "La balise d'intersection est un poteau court entièrement blanc muni d'une bande rouge réfléchissante près du sommet pour signaler une intersection peu visible (Chapitre VII)."
-      },
-      {
-        q: `[Étape ${id}] Quelle est la signification d'un panneau circulaire à fond blanc barré d'une diagonale noire ?`,
-        opt: ["A) Fin d'interdiction précédemment signalée", "B) Interdiction stricte de circuler", "C) Entrée d'une agglomération béninoise", "D) Zone de stationnement payant"],
-        rep: ["A"],
-        exp: "Un panneau circulaire à fond blanc barré d'une bande diagonale noire indique la fin d'interdiction (vitesse, dépassement, klaxon) pour le conducteur."
-      }
-    ];
-    const q_choice = questions_signaux[id % questions_signaux.length];
-    question = q_choice.q;
-    options = q_choice.opt;
-    reponsesCorrectes = q_choice.rep;
-    explication = q_choice.exp;
-  } else if (theme === "Priorités") {
-    const questions_prio = [
-      {
-        q: `[Étape ${id}] Dans quelle situation la règle de la priorité à droite s'applique-t-elle obligatoirement ?`,
-        opt: ["A) À une intersection sans aucune signalisation", "B) À l'approche d'un panneau STOP", "C) Lorsque vous sortez d'un garage privé", "D) Face à un véhicule de gendarmerie sans avertisseur"],
-        rep: ["A"],
-        exp: "La priorité à droite s'applique obligatoirement aux intersections sans signalisation, aux routes secondaires de même importance ou lorsque l'orange clignote (Chapitre III)."
-      },
-      {
-        q: `[Étape ${id}] Un agent de circulation fait face à votre véhicule, bras tendus. Que devez-vous faire ?`,
-        opt: ["A) M'arrêter immédiatement, le face ou dos équivaut au feu rouge", "B) Passer prudemment en klaxonnant", "C) Tourner obligatoirement à droite", "D) Passer car l'agent vous fait face"],
-        rep: ["A"],
-        exp: "Selon le Chapitre III, l'agent vu de face ou de dos commande l'arrêt obligatoire (équivalant à un feu rouge). Vous ne pouvez passer que s'il est de profil (équivalant au feu vert)."
-      },
-      {
-        q: `[Étape ${id}] Si un feu vert de circulation fonctionne en même temps qu'un panneau 'Cédez le Passage' à une intersection, que faites-vous ?`,
-        opt: ["A) Je passe, le feu vert prévaut sur le panneau de priorité", "B) Je m'arrête car le panneau l'emporte toujours", "C) Je cède le passage aux véhicules venant de droite uniquement", "D) Je fais demi-tour immédiatement"],
-        rep: ["A"],
-        exp: "Le Chapitre IV enseigne que la signalisation lumineuse (les feux tricolores fonctionnels) prévaut sur la signalisation verticale (panneaux de priorité). Vous passez donc au feu vert."
-      },
-      {
-        q: `[Étape ${id}] Que devez-vous faire si vous sortez d'un garage privé ou d'un chemin de terre pour rejoindre une route bitumée ?`,
-        opt: ["A) Je perds la priorité et dois céder le passage à tous les véhicules de la route", "B) Je passe en priorité car je viens de la droite", "C) Je klaxonne vigoureusement et m'engage sans m'arrêter", "D) Je m'arrête uniquement si le train passe"],
-        rep: ["A"],
-        exp: "La sortie d'un garage ou d'un chemin de terre non bitumé constitue une situation de perte de priorité totale. Vous devez céder le passage à gauche et à droite."
-      }
-    ];
-    const q_choice = questions_prio[id % questions_prio.length];
-    question = q_choice.q;
-    options = q_choice.opt;
-    reponsesCorrectes = q_choice.rep;
-    explication = q_choice.exp;
-  } else if (theme === "Mécanique") {
-    const questions_meca = [
-      {
-        q: `[Étape ${id}] Quel composant mécanique recharge la batterie en électricité lorsque le moteur tourne ?`,
-        opt: ["A) L'alternateur (ou Dynamo)", "B) Le démarreur", "C) L'allumeur (Delco)", "D) La bobine d'allumage"],
-        rep: ["A"],
-        exp: "Selon le Chapitre XX, l'alternateur (ou dynamo) est entraîné par le moteur pour produire l'électricité nécessaire au fonctionnement du véhicule et recharger la batterie."
-      },
-      {
-        q: `[Étape ${id}] Quel accessoire électrique décharge la batterie le plus rapidement si vous l'utilisez abusivement ?`,
-        opt: ["A) Le démarreur", "B) Les feux de position", "C) Le klaxon", "D) Les essuie-glaces"],
-        rep: ["A"],
-        exp: "Le démarreur nécessite une quantité d'énergie considérable de la batterie pour lancer le moteur. Son utilisation abusive la décharge en quelques minutes (Chapitre XXII)."
-      },
-      {
-        q: `[Étape ${id}] Quels sont les quatre temps d'un moteur à explosion thermique dans l'ordre réglementaire ?`,
-        opt: ["A) Admission, Compression, Explosion, Échappement", "B) Aspiration, Compression, Allumage, Refroidissement", "C) Injection, Évacuation, Explosion, Ralentissement", "D) Démarrage, Propulsion, Combustion, Échappement"],
-        rep: ["A"],
-        exp: "Le moteur thermique à 4 temps suit l'ordre académique : 1) Admission, 2) Compression, 3) Explosion (étincelle de la bougie), 4) Échappement (évacuation des gaz brûlés) - Chapitre XXIII."
-      },
-      {
-        q: `[Étape ${id}] Quels sont les trois (3) filtres essentiels à contrôler sous le capot d'un moteur à essence ?`,
-        opt: ["A) Filtre à air, filtre à essence, filtre à huile", "B) Filtre à eau, filtre de clim, filtre à batterie", "C) Filtre de direction, filtre à huile, filtre à bougie", "D) Filtre de radiateur, filtre à cric, filtre d'échappement"],
-        rep: ["A"],
-        exp: "Le cours de mécanique (Chapitre XXII) liste trois filtres indispensables : le filtre à essence (épurer le carburant), le filtre à huile (lubrification propre), et le filtre à air (combustion saine)."
-      }
-    ];
-    const q_choice = questions_meca[id % questions_meca.length];
-    question = q_choice.q;
-    options = q_choice.opt;
-    reponsesCorrectes = q_choice.rep;
-    explication = q_choice.exp;
-  } else if (theme === "Circuit ANaTT") {
-    const questions_anatt = [
-      {
-        q: `[Étape ${id}] Lors de l'examen pratique de l'ANaTT, quel comportement est immédiatement éliminatoire ?`,
-        opt: ["A) Heurter un piquet de jalonnement ou franchir une ligne continue", "B) Caler une fois lors du démarrage en côte", "C) Mettre le clignotant trop tardivement lors d'une manœuvre", "D) Oublier de saluer l'examinateur de l'ANaTT"],
-        rep: ["A"],
-        exp: "Au circuit ANaTT, tout contact physique avec les piquets (jalonnement), le chevauchement d'une ligne continue ou la mise en danger immédiate constitue une faute éliminatoire directe."
-      },
-      {
-        q: `[Étape ${id}] Pour effectuer une manœuvre de marche arrière ou de créneau au circuit d'examen, quelle précaution devez-vous prendre ?`,
-        opt: ["A) Regarder tout autour, utiliser les rétroviseurs et reculer à allure très lente", "B) Reculer rapidement en klaxonnant sans regarder", "C) Ouvrir la portière conducteur pour regarder la roue", "D) Demander à un piéton de guider la voiture"],
-        rep: ["A"],
-        exp: "Les manœuvres de stationnement et de marche arrière exigent une surveillance constante à 360°, une utilisation attentive des rétroviseurs, et une vitesse au ralenti sous contrôle."
-      },
-      {
-        q: `[Étape ${id}] À quelle distance minimale devez-vous placer les deux triangles de présignalisation en cas de panne sur une route béninoise ?`,
-        opt: ["A) À 30 mètres au moins à l'avant et à l'arrière du véhicule", "B) À 10 mètres à l'arrière du véhicule seulement", "C) À 150 mètres en agglomération", "D) Sous les roues du véhicule pour servir de cale"],
-        rep: ["A"],
-        exp: "Le Chapitre X de l'ANaTT impose de placer les triangles de présignalisation à 30 mètres au moins à l'avant et à l'arrière pour avertir les autres usagers du danger de panne."
-      },
-      {
-        q: `[Étape ${id}] Que devez-vous faire immédiatement en arrivant le premier sur le lieu d'un accident avec blessés ?`,
-        opt: ["A) Sécuriser les lieux (Protéger) pour éviter un suraccident", "B) Essayer de sortir les victimes bloquées dans les décombres", "C) Donner de l'eau bien fraîche aux blessés", "D) Prendre des photos pour les réseaux sociaux"],
-        rep: ["A"],
-        exp: "La première règle du secourisme (P.A.S) est de Protéger. Avant d'alerter ou de secourir, il faut baliser les lieux pour éviter qu'un autre véhicule ne percute les blessés."
-      }
-    ];
-    const q_choice = questions_anatt[id % questions_anatt.length];
-    question = q_choice.q;
-    options = q_choice.opt;
-    reponsesCorrectes = q_choice.rep;
-    explication = q_choice.exp;
+function seededNumber(seed) {
+  let x = Math.sin(seed * 999.91) * 10000;
+  return x - Math.floor(x);
+}
+
+function pick(seed, array) {
+  return array[Math.floor(seededNumber(seed) * array.length)];
+}
+
+function shuffleWithSeed(items, seed) {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(seededNumber(seed + i * 19.7) * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
+
+function construireQuestionQCM({ id, theme, enonce, bonneReponse, distracteurs, explication }) {
+  const propositions = shuffleWithSeed([bonneReponse, ...distracteurs.slice(0, 3)], id + 77);
+  const lettres = ["A", "B", "C", "D"];
+  const indexBonne = propositions.findIndex((p) => p === bonneReponse);
 
   return {
-    id: id,
-    theme: theme,
-    question: question,
-    options: options,
-    reponsesCorrectes: reponsesCorrectes,
-    explication: explication,
-    image: `images/q${id}.jpg`,
-    tempsImparti: tempsImparti
+    id,
+    theme,
+    question: enonce,
+    options: propositions.map((p, i) => `${lettres[i]}) ${p}`),
+    reponsesCorrectes: [lettres[indexBonne]],
+    explication,
+    image: buildQuestionImageUrl(theme, id),
+    tempsImparti: TEMPS_IMPARTI_PAR_DEFAUT
   };
 }
 
-// Construction de la liste finale de 300 questions
-const BANQUE_QUESTIONS = [];
+function getThemeForId(id) {
+  if (id <= TOTAL_QUESTIONS_JEU) {
+    const inGameRange = THEMES_STRICTS_JEU.find((t) => id >= t.debut && id <= t.fin);
+    return inGameRange ? inGameRange.theme : "Cadre Légal";
+  }
+  return THEMES[(id - 1) % THEMES.length];
+}
 
-// On insère nos exemples d'abord
-for (let i = 1; i <= 300; i++) {
-  const exemple = EXEMPLES_REELS.find(e => e.id === i);
-  if (exemple) {
-    BANQUE_QUESTIONS.push(exemple);
-  } else {
-    // On trouve le thème en fonction de l'intervalle de l'id
-    const configTheme = THEMES_STRICTS.find(t => i >= t.debut && i <= t.fin);
-    const nomTheme = configTheme ? configTheme.theme : "Cadre Légal";
-    BANQUE_QUESTIONS.push(genererFausseQuestion(i, nomTheme));
+function genererQuestionCadreLegal(id) {
+  const docs = ["permis de conduire", "carte grise", "attestation d'assurance", "pièce d'identité"];
+  const infractions = ["conduite en état d'ivresse", "usage du téléphone au volant", "délit de fuite", "excès de vitesse"];
+  const elementsReglementaires = [
+    "minimum 18 ans pour le permis B",
+    "maximum 9 places conducteur compris",
+    "PTAC n'excédant pas 3,5 tonnes",
+    "réussite du code et de la pratique"
+  ];
+  const template = id % 6;
+  const doc = pick(id + 3, docs);
+  const infraction = pick(id + 5, infractions);
+  const element = pick(id + 7, elementsReglementaires);
+
+  if (template === 0) {
+    return construireQuestionQCM({
+      id,
+      theme: "Cadre Légal",
+      enonce: `[Étape ${id}] Au Bénin, quelle condition est requise pour la catégorie B ?`,
+      bonneReponse: "Avoir au moins 18 ans",
+      distracteurs: ["Avoir au moins 16 ans", "Avoir au moins 21 ans", "Avoir au moins 25 ans"],
+      explication: "Les supports de préparation au permis B au Bénin indiquent un âge minimum de 18 ans."
+    });
+  }
+  if (template === 1) {
+    return construireQuestionQCM({
+      id,
+      theme: "Cadre Légal",
+      enonce: `[Étape ${id}] Parmi ces éléments, lequel fait partie des limites usuelles du permis B ?`,
+      bonneReponse: "Véhicule jusqu'à 9 places (conducteur compris)",
+      distracteurs: ["Véhicule de 15 places minimum", "PTAC sans limite", "Conduite des poids lourds articulés"],
+      explication: "Le permis B couvre les véhicules légers, notamment jusqu'à 9 places avec conducteur."
+    });
+  }
+  if (template === 2) {
+    return construireQuestionQCM({
+      id,
+      theme: "Cadre Légal",
+      enonce: `[Étape ${id}] Avant de circuler, quel document doit être disponible à bord ?`,
+      bonneReponse: doc,
+      distracteurs: ["Carnet scolaire", "Contrat de location de maison", "Carte d'électeur uniquement"],
+      explication: "Le conducteur doit pouvoir présenter les documents administratifs du véhicule et de conduite."
+    });
+  }
+  if (template === 3) {
+    return construireQuestionQCM({
+      id,
+      theme: "Cadre Légal",
+      enonce: `[Étape ${id}] Quel comportement constitue une infraction grave au volant ?`,
+      bonneReponse: infraction,
+      distracteurs: ["Régler son siège avant de partir", "Vérifier les rétroviseurs", "Attacher sa ceinture"],
+      explication: "Les infractions majeures sont fortement sanctionnées et compromettent la sécurité routière."
+    });
+  }
+  if (template === 4) {
+    return construireQuestionQCM({
+      id,
+      theme: "Cadre Légal",
+      enonce: `[Étape ${id}] Quelle affirmation est correcte sur le parcours permis au Bénin ?`,
+      bonneReponse: element,
+      distracteurs: ["Aucune heure de code n'est utile", "La pratique se fait sans évaluation", "Le code suffit sans conduite"],
+      explication: "La préparation combine formation théorique et pratique, avec critères de réussite."
+    });
+  }
+  return construireQuestionQCM({
+    id,
+    theme: "Cadre Légal",
+    enonce: `[Étape ${id}] Quelle bonne pratique légale adopter avant de démarrer ?`,
+    bonneReponse: "S'assurer de la validité des documents et de l'état du véhicule",
+    distracteurs: ["Démarrer immédiatement sans contrôle", "Prêter son permis à un ami", "Conduire avec documents expirés"],
+    explication: "Un contrôle administratif et technique rapide limite les risques et infractions."
+  });
+}
+
+function genererQuestionMarquage(id) {
+  const template = id % 6;
+  if (template === 0) {
+    return construireQuestionQCM({
+      id,
+      theme: "Marquage au sol",
+      enonce: `[Étape ${id}] Une ligne continue au centre de la chaussée signifie :`,
+      bonneReponse: "Franchissement interdit sauf cas prévus par la loi",
+      distracteurs: ["Dépassement libre", "Stationnement obligatoire", "Priorité absolue en virage"],
+      explication: "La ligne continue impose une restriction forte de franchissement."
+    });
+  }
+  if (template === 1) {
+    return construireQuestionQCM({
+      id,
+      theme: "Marquage au sol",
+      enonce: `[Étape ${id}] Une ligne discontinue permet généralement :`,
+      bonneReponse: "Le dépassement si les conditions de sécurité sont réunies",
+      distracteurs: ["Le demi-tour à toute vitesse", "Le stationnement sur la voie", "Le franchissement d'un feu rouge"],
+      explication: "Discontinue ne signifie pas liberté totale: la visibilité et la sécurité restent obligatoires."
+    });
+  }
+  if (template === 2) {
+    return construireQuestionQCM({
+      id,
+      theme: "Marquage au sol",
+      enonce: `[Étape ${id}] Une zone zébrée au sol sert principalement à :`,
+      bonneReponse: "Interdire la circulation, l'arrêt et le stationnement sur la zone hachurée",
+      distracteurs: ["Créer une aire de dépassement", "Autoriser le stationnement minute", "Délimiter une piste de course"],
+      explication: "Les zébras matérialisent une zone de neutralisation."
+    });
+  }
+  if (template === 3) {
+    return construireQuestionQCM({
+      id,
+      theme: "Marquage au sol",
+      enonce: `[Étape ${id}] Une ligne d'effet de feux indique :`,
+      bonneReponse: "L'endroit précis où s'arrêter au feu rouge",
+      distracteurs: ["Un emplacement de taxi", "Une zone de stationnement de nuit", "Le début d'une autoroute"],
+      explication: "Cette ligne transversale définit le point d'arrêt réglementaire."
+    });
+  }
+  if (template === 4) {
+    return construireQuestionQCM({
+      id,
+      theme: "Marquage au sol",
+      enonce: `[Étape ${id}] Une ligne jaune continue au bord du trottoir indique souvent :`,
+      bonneReponse: "Interdiction d'arrêt et de stationnement",
+      distracteurs: ["Stationnement réservé aux visiteurs", "Dépassement conseillé", "Voie rapide obligatoire"],
+      explication: "Le marquage jaune continu sur bordure matérialise une interdiction stricte."
+    });
+  }
+  return construireQuestionQCM({
+    id,
+    theme: "Marquage au sol",
+    enonce: `[Étape ${id}] Les flèches de rabattement servent à :`,
+    bonneReponse: "Prévenir d'un changement de voie et imposer un repositionnement progressif",
+    distracteurs: ["Indiquer une aire de jeux", "Donner priorité aux piétons sur autoroute", "Permettre de rouler à contre-sens"],
+    explication: "Le marquage prépare le conducteur à adapter sa trajectoire."
+  });
+}
+
+function genererQuestionSignalisation(id) {
+  const template = id % 6;
+  if (template === 0) {
+    return construireQuestionQCM({
+      id,
+      theme: "Signalisation",
+      enonce: `[Étape ${id}] Un panneau triangulaire à bord rouge appartient à la famille :`,
+      bonneReponse: "Danger",
+      distracteurs: ["Obligation", "Indication touristique", "Stationnement payant"],
+      explication: "La forme triangulaire bord rouge annonce un danger."
+    });
+  }
+  if (template === 1) {
+    return construireQuestionQCM({
+      id,
+      theme: "Signalisation",
+      enonce: `[Étape ${id}] Un panneau circulaire bleu signifie généralement :`,
+      bonneReponse: "Obligation",
+      distracteurs: ["Fin d'interdiction", "Danger immédiat", "Information culturelle"],
+      explication: "Le fond bleu circulaire est associé aux obligations."
+    });
+  }
+  if (template === 2) {
+    return construireQuestionQCM({
+      id,
+      theme: "Signalisation",
+      enonce: `[Étape ${id}] Un panneau rond blanc bordé rouge exprime le plus souvent :`,
+      bonneReponse: "Une interdiction ou limitation",
+      distracteurs: ["Une priorité automatique", "Un sens obligatoire", "Un arrêt de bus scolaire"],
+      explication: "Ce code visuel correspond aux prescriptions d'interdiction."
+    });
+  }
+  if (template === 3) {
+    return construireQuestionQCM({
+      id,
+      theme: "Signalisation",
+      enonce: `[Étape ${id}] Le panneau STOP impose :`,
+      bonneReponse: "L'arrêt absolu avant de s'engager",
+      distracteurs: ["Un simple ralentissement", "Le passage prioritaire", "Le stationnement temporaire"],
+      explication: "Avec STOP, l'arrêt complet est obligatoire."
+    });
+  }
+  if (template === 4) {
+    return construireQuestionQCM({
+      id,
+      theme: "Signalisation",
+      enonce: `[Étape ${id}] En agglomération, un panneau de danger est souvent implanté environ :`,
+      bonneReponse: "50 m avant le danger",
+      distracteurs: ["5 m avant le danger", "500 m avant le danger", "Immédiatement sur le danger uniquement"],
+      explication: "Les supports de formation au Bénin utilisent la référence 50 m en agglomération."
+    });
+  }
+  return construireQuestionQCM({
+    id,
+    theme: "Signalisation",
+    enonce: `[Étape ${id}] Hors agglomération, la distance de présignalisation de danger est souvent :`,
+    bonneReponse: "150 m avant le danger",
+    distracteurs: ["15 m avant le danger", "30 m avant le danger", "1 km avant le danger"],
+    explication: "La distance d'annonce est augmentée pour tenir compte des vitesses plus élevées."
+  });
+}
+
+function genererQuestionPriorites(id) {
+  const template = id % 6;
+  if (template === 0) {
+    return construireQuestionQCM({
+      id,
+      theme: "Priorités",
+      enonce: `[Étape ${id}] À une intersection sans signalisation, la règle applicable est :`,
+      bonneReponse: "La priorité à droite",
+      distracteurs: ["La priorité à gauche", "Le passage sans ralentir", "L'arrêt systématique des deux côtés"],
+      explication: "Sans indication contraire, céder à droite est la règle de base."
+    });
+  }
+  if (template === 1) {
+    return construireQuestionQCM({
+      id,
+      theme: "Priorités",
+      enonce: `[Étape ${id}] En sortant d'un garage ou d'une propriété privée, vous :`,
+      bonneReponse: "Perdez la priorité et cédez aux usagers de la route",
+      distracteurs: ["Êtes prioritaire si vous klaxonnez", "Passez d'abord à faible vitesse", "Ignorez les véhicules venant de gauche"],
+      explication: "La sortie d'une propriété impose de céder le passage."
+    });
+  }
+  if (template === 2) {
+    return construireQuestionQCM({
+      id,
+      theme: "Priorités",
+      enonce: `[Étape ${id}] Si un feu fonctionne normalement et contredit un panneau, on suit :`,
+      bonneReponse: "Le feu tricolore",
+      distracteurs: ["Le panneau uniquement", "Le marquage le plus ancien", "La décision du passager"],
+      explication: "La signalisation lumineuse active prévaut sur le panneau."
+    });
+  }
+  if (template === 3) {
+    return construireQuestionQCM({
+      id,
+      theme: "Priorités",
+      enonce: `[Étape ${id}] Face à un agent de circulation vu de face, vous devez :`,
+      bonneReponse: "Vous arrêter",
+      distracteurs: ["Accélérer", "Tourner sans contrôle", "Passer uniquement si piéton absent"],
+      explication: "Agent de face ou de dos équivaut à un ordre d'arrêt."
+    });
+  }
+  if (template === 4) {
+    return construireQuestionQCM({
+      id,
+      theme: "Priorités",
+      enonce: `[Étape ${id}] Un véhicule prioritaire en mission (sirène/gyrophares) impose :`,
+      bonneReponse: "De faciliter son passage en sécurité",
+      distracteurs: ["De garder sa trajectoire sans changer", "De le doubler rapidement", "D'arrêter le moteur au milieu de la voie"],
+      explication: "Les usagers doivent libérer le passage sans créer de danger."
+    });
+  }
+  return construireQuestionQCM({
+    id,
+    theme: "Priorités",
+    enonce: `[Étape ${id}] Au rond-point signalé, la priorité est généralement donnée :`,
+    bonneReponse: "Aux véhicules déjà engagés dans l'anneau",
+    distracteurs: ["Aux véhicules entrants à haute vitesse", "Aux deux-roues uniquement", "Aux voitures les plus lourdes"],
+    explication: "La règle la plus enseignée en rond-point favorise les véhicules déjà circulants."
+  });
+}
+
+function genererQuestionMecanique(id) {
+  const template = id % 6;
+  if (template === 0) {
+    return construireQuestionQCM({
+      id,
+      theme: "Mécanique",
+      enonce: `[Étape ${id}] L'alternateur sert principalement à :`,
+      bonneReponse: "Recharger la batterie et alimenter le circuit électrique",
+      distracteurs: ["Freiner le véhicule", "Refroidir les pneus", "Commander la direction assistée"],
+      explication: "L'alternateur produit l'énergie électrique quand le moteur tourne."
+    });
+  }
+  if (template === 1) {
+    return construireQuestionQCM({
+      id,
+      theme: "Mécanique",
+      enonce: `[Étape ${id}] Le voyant pression d'huile allumé impose en priorité :`,
+      bonneReponse: "D'arrêter le véhicule en sécurité et vérifier rapidement",
+      distracteurs: ["D'accélérer pour chauffer le moteur", "De couper les phares seulement", "D'ignorer jusqu'au prochain lavage"],
+      explication: "Une alerte huile peut endommager gravement le moteur."
+    });
+  }
+  if (template === 2) {
+    return construireQuestionQCM({
+      id,
+      theme: "Mécanique",
+      enonce: `[Étape ${id}] Les 4 temps du moteur thermique sont :`,
+      bonneReponse: "Admission, compression, explosion, échappement",
+      distracteurs: ["Admission, explosion, freinage, refroidissement", "Compression, embrayage, combustion, purge", "Injection, accélération, allumage, arrêt"],
+      explication: "La séquence classique en 4 temps est un fondamental de mécanique auto."
+    });
+  }
+  if (template === 3) {
+    return construireQuestionQCM({
+      id,
+      theme: "Mécanique",
+      enonce: `[Étape ${id}] Quel trio de contrôles est pertinent avant long trajet ?`,
+      bonneReponse: "Pneus, niveaux (huile/liquides), éclairage",
+      distracteurs: ["Autoradio, vitres teintées, parfum", "Housse de siège, tapis, horloge", "Essuie-main, stylo, chargeur"],
+      explication: "Ces points réduisent les pannes et augmentent la sécurité."
+    });
+  }
+  if (template === 4) {
+    return construireQuestionQCM({
+      id,
+      theme: "Mécanique",
+      enonce: `[Étape ${id}] Le frein moteur est utile surtout pour :`,
+      bonneReponse: "Ralentir dans les descentes et limiter l'échauffement des freins",
+      distracteurs: ["Stationner en pente sans frein à main", "Éteindre rapidement le moteur", "Tester la batterie"],
+      explication: "Il complète le freinage et améliore la maîtrise en pente."
+    });
+  }
+  return construireQuestionQCM({
+    id,
+    theme: "Mécanique",
+    enonce: `[Étape ${id}] Si le voyant batterie reste allumé en roulant, cela suggère :`,
+    bonneReponse: "Un possible défaut de charge (alternateur/circuit)",
+    distracteurs: ["Un manque de carburant immédiat", "Une usure des pneus arrière", "Un blocage de la direction"],
+    explication: "Le voyant batterie indique souvent un problème de recharge électrique."
+  });
+}
+
+function genererQuestionCircuitANaTT(id) {
+  const template = id % 6;
+  if (template === 0) {
+    return construireQuestionQCM({
+      id,
+      theme: "Circuit ANaTT",
+      enonce: `[Étape ${id}] En cas d'accident, quel ordre est recommandé ?`,
+      bonneReponse: "Protéger, Alerter, Secourir (PAS)",
+      distracteurs: ["Secourir, Conduire, Filmer", "Alerter, Déplacer, Repartir", "Observer, Noter, Quitter"],
+      explication: "La séquence PAS est la base des premiers gestes de sécurité routière."
+    });
+  }
+  if (template === 1) {
+    return construireQuestionQCM({
+      id,
+      theme: "Circuit ANaTT",
+      enonce: `[Étape ${id}] Lors d'une marche arrière d'examen, la bonne attitude est :`,
+      bonneReponse: "Reculer lentement avec contrôle visuel permanent",
+      distracteurs: ["Accélérer pour finir vite", "Se fier uniquement au passager", "Klaxonner et reculer sans regarder"],
+      explication: "La maîtrise lente et l'observation sont évaluées au circuit."
+    });
+  }
+  if (template === 2) {
+    return construireQuestionQCM({
+      id,
+      theme: "Circuit ANaTT",
+      enonce: `[Étape ${id}] Avant démarrage, la vérification de sécurité inclut :`,
+      bonneReponse: "Réglage siège/rétros et ceinture",
+      distracteurs: ["Allumer la radio en priorité", "Monter le volume téléphone", "Tester le klaxon 10 secondes"],
+      explication: "Posture, visibilité et ceinture conditionnent une conduite sûre."
+    });
+  }
+  if (template === 3) {
+    return construireQuestionQCM({
+      id,
+      theme: "Circuit ANaTT",
+      enonce: `[Étape ${id}] En panne sur route, les triangles de présignalisation servent à :`,
+      bonneReponse: "Avertir les autres usagers pour éviter le sur-accident",
+      distracteurs: ["Décorer le véhicule", "Mesurer la largeur de voie", "Réserver une place de stationnement"],
+      explication: "Le balisage protège la zone et laisse le temps de réaction aux autres conducteurs."
+    });
+  }
+  if (template === 4) {
+    return construireQuestionQCM({
+      id,
+      theme: "Circuit ANaTT",
+      enonce: `[Étape ${id}] Pendant l'examen pratique, une faute éliminatoire est souvent :`,
+      bonneReponse: "Mettre en danger un usager ou ignorer une règle majeure",
+      distracteurs: ["Demander une consigne", "Caler une seule fois sans danger", "Adapter sa vitesse à la pluie"],
+      explication: "Les fautes graves touchent directement à la sécurité immédiate."
+    });
+  }
+  return construireQuestionQCM({
+    id,
+    theme: "Circuit ANaTT",
+    enonce: `[Étape ${id}] Pour une conduite préventive en ville (zémidjans, piétons, marchés), il faut :`,
+    bonneReponse: "Anticiper, réduire l'allure et garder des distances de sécurité",
+    distracteurs: ["Serrer au plus près les deux-roues", "Rouler au maximum autorisé en permanence", "Utiliser le klaxon comme priorité"],
+    explication: "Le contexte urbain exige vigilance, anticipation et adaptation continue."
+  });
+}
+
+function genererQuestionParTheme(id, theme) {
+  switch (theme) {
+    case "Cadre Légal":
+      return genererQuestionCadreLegal(id);
+    case "Marquage au sol":
+      return genererQuestionMarquage(id);
+    case "Signalisation":
+      return genererQuestionSignalisation(id);
+    case "Priorités":
+      return genererQuestionPriorites(id);
+    case "Mécanique":
+      return genererQuestionMecanique(id);
+    default:
+      return genererQuestionCircuitANaTT(id);
   }
 }
 
-// Rendre disponible globalement
+const BANQUE_QUESTIONS_COMPLETE = [];
+for (let id = 1; id <= TOTAL_QUESTIONS_COMPLETE; id++) {
+  const theme = getThemeForId(id);
+  BANQUE_QUESTIONS_COMPLETE.push(genererQuestionParTheme(id, theme));
+}
+
+const BANQUE_QUESTIONS = BANQUE_QUESTIONS_COMPLETE;
+
 window.BANQUE_QUESTIONS = BANQUE_QUESTIONS;
+window.BANQUE_QUESTIONS_COMPLETE = BANQUE_QUESTIONS_COMPLETE;

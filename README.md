@@ -1,20 +1,16 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Code de la Route Bénin — Jeu interactif ANaTT (Permis B)
 
-# Run and deploy your AI Studio app
+Application web autonome pour s'entraîner au code de la route béninois (progression en 300 étapes, secteurs thématiques, timer, vies, score par séries de 20).
 
-This contains everything you need to run your app locally.
+## Lancer en local
 
-View your app in AI Studio: https://ai.studio/apps/1df75078-70b8-4aab-b118-e82d85b783da
+**Prérequis :** Node.js (npm)
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
+1. Installer les dépendances :
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Démarrer le serveur de dev :
    `npm run dev`
+
+## Build (production)
+
+`npm run build`

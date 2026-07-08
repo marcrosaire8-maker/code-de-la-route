@@ -38,7 +38,8 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -63,7 +64,8 @@ body {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
@@ -528,6 +530,26 @@ body {
   margin-bottom: 1.5rem;
 }
 
+.audio-tools {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.btn-mini {
+  padding: 0.55rem 0.8rem;
+  font-size: 0.82rem;
+  border-radius: 10px;
+}
+
+.tts-status {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.9rem;
+}
+
 .options-list {
   display: flex;
   flex-direction: column;
@@ -900,4 +922,132 @@ body {
   max-width: 320px;
   height: auto;
   border-radius: 8px;
+}
+
+/* ========================================= */
+/* Responsive (mobile-first)                 */
+/* ========================================= */
+@media (max-width: 700px) {
+  .app-container {
+    max-width: 100%;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .hud-panel {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .hud-item {
+    padding: 0.5rem 0.75rem;
+    border-radius: 14px;
+    font-size: 0.82rem;
+  }
+
+  .map-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .sector-navigator {
+    max-width: 100%;
+  }
+
+  .road-scroller {
+    padding: 2.5rem 0.75rem;
+  }
+
+  .road-track {
+    max-width: 520px;
+  }
+
+  .road-asphalt-line {
+    width: 64px;
+  }
+
+  .map-node {
+    width: 48px;
+    height: 48px;
+    border-width: 3px;
+  }
+
+  .map-node::after {
+    font-size: 0.7rem;
+  }
+
+  .road-checkpoint-banner {
+    width: 210px;
+  }
+
+  .stats-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand-title h1 {
+    font-size: 1.1rem;
+  }
+
+  .brand-title span {
+    font-size: 0.7rem;
+  }
+
+  .quiz-visual-side,
+  .quiz-control-side {
+    padding: 1rem;
+  }
+
+  .quiz-progress-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .timer-bar-container {
+    width: 100%;
+    max-width: 260px;
+  }
+
+  .question-text {
+    font-size: 1.1rem;
+  }
+
+  .audio-tools {
+    gap: 0.45rem;
+  }
+
+  .btn-mini {
+    width: 100%;
+  }
+
+  .option-card {
+    padding: 0.85rem 1rem;
+    font-size: 0.92rem;
+  }
+
+  .quiz-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .modal-card {
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
 }

@@ -1,6 +1,5 @@
 {
   "name": "Code de la Route Bénin - ANaTT Jeu Interactif",
   "description": "Un jeu interactif autonome pour apprendre le code de la route béninois (Permis B) suivant les spécifications de l'ANaTT. 100% hors-ligne.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "requestFramePermissions": []
 }
